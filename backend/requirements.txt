@@ -1,0 +1,32 @@
+# ── API layer ────────────────────────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.32.1   # ASGI server for local dev
+httpx>=0.27.0               # required by FastAPI TestClient
+
+# ── Data validation ──────────────────────────────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# ── Environment config ───────────────────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── Database / ORM ───────────────────────────────────────────────────────────
+sqlalchemy==2.0.36
+alembic==1.14.0        # migrations — wired up in Chunk 2
+
+# LLM (explain + Q&A layer only — never for matching decisions)
+# google-genai is the successor to the deprecated google-generativeai package.
+# See: https://github.com/google-gemini/deprecated-generative-ai-python
+google-genai==1.47.0
+google-api-core>=2.24.0   # provides ResourceExhausted exception used in retry logic
+
+# ── Data processing (synthetic data generator + matching engine) ─────────────
+pandas==2.2.3
+numpy==2.1.3
+
+# ── String matching (UTR fuzzy matching in the reconciliation engine) ─────────
+rapidfuzz==3.10.1
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+httpx==0.27.2          # async HTTP client (used in tests + health checks)
+typing_extensions==4.12.2  # TypeAlias backport for Python 3.9

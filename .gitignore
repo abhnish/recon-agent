@@ -1,0 +1,32 @@
+# Environments
+.env
+.venv/
+venv/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node/Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Database
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3
+
+# Temp/Misc
+.DS_Store
+*.log
+backend/before.json
+backend/after.json
