@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --primary: #0f172a;
+    --primary-hover: #334155;
+    
+    /* Semantic Status Colors */
+    --status-match: #10b981;
+    --status-match-bg: #d1fae5;
+    --status-review: #f59e0b;
+    --status-review-bg: #fef3c7;
+    --status-unresolved: #ef4444;
+    --status-unresolved-bg: #fee2e2;
+  }
+
+  /* Optional Dark Mode prep (not fully implemented, just variables) */
+  @media (prefers-color-scheme: dark) {
+    /* To be implemented if dark mode is added */
+  }
+}
+
+body {
+  @apply bg-background text-text antialiased;
+}
+
+/* Custom scrollbar for tables/panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400;
+}
