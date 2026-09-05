@@ -20,7 +20,7 @@ Design notes:
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -38,7 +38,7 @@ class ApiResponse(BaseModel):
 
     ok: bool = True
     data: Any = None
-    error: Optional[str] = None
+    error: str | None = None
 
 
 # ── Reconcile ─────────────────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ class MetricsResponse(BaseModel):
     value_auto_matched: float
     value_in_exceptions: float
     avg_runtime_ms: float
-    last_run_id: Optional[int]
+    last_run_id: int | None
 
 
 # ── Transactions ──────────────────────────────────────────────────────────────
@@ -148,11 +148,11 @@ class TransactionSchema(BaseModel):
     composite_score: float
     anomaly_flags: list[str]
     order_amount: float
-    settled_amount: Optional[float]
-    fee: Optional[float]
-    matched_settlement_id: Optional[str]
-    order_date: Optional[str]
-    settled_date: Optional[str]
+    settled_amount: float | None
+    fee: float | None
+    matched_settlement_id: str | None
+    order_date: str | None
+    settled_date: str | None
     score_breakdown: ScoreBreakdownSchema
 
 
@@ -305,7 +305,7 @@ class AuditLogEntrySchema(BaseModel):
     """
 
     event_type: str
-    order_id: Optional[str]
+    order_id: str | None
     model_name: str
     prompt_summary: str
     response_text: str

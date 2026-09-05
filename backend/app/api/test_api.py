@@ -40,8 +40,8 @@ from app.api.state import app_state
 from app.main import app
 from app.services import llm_layer
 from app.services.llm_layer import (
-    AuditLogEntry,
     AuditEventType,
+    AuditLogEntry,
     QAResponse,
     clear_explain_cache,
 )
@@ -57,11 +57,13 @@ client = TestClient(app)
 
 import app.api.chat as chat_router_module
 import app.api.exceptions as exceptions_router_module
+from app.services import audit_db
 
 
 def _reset_state() -> None:
     """Reset the global app_state and LLM cache between tests."""
     import threading
+
     app_state.last_run = None
     app_state.all_runs.clear()
     app_state.classified_results.clear()
@@ -69,6 +71,10 @@ def _reset_state() -> None:
     app_state.audit_log.clear()
     app_state._lock = threading.Lock()
     clear_explain_cache()
+    # Clear the persistent audit log db as well
+    with audit_db._get_conn() as conn:
+        conn.execute("DELETE FROM audit_log")
+        conn.commit()
 
 
 def _run_reconcile() -> dict:
@@ -222,7 +228,7 @@ class TestReconcileRun:
             assert body["auto_matched"] == 0
             assert body["needs_review"] == 0
             assert body["unresolved"] == 0
-            
+
             # Metrics should also not crash when requested on an empty run
             metrics_resp = client.get("/api/metrics")
             assert metrics_resp.status_code == 200
@@ -405,7 +411,9 @@ class TestExceptions:
         def _fake_explain(diff):
             return _mock_explain_response(order_id=diff.order_id)
 
-        with patch.object(exceptions_router_module, "explain_exception", side_effect=_fake_explain):
+        with patch.object(
+            exceptions_router_module, "explain_exception", side_effect=_fake_explain
+        ):
             resp = client.get(f"/api/exceptions/{exception_id}/explain")
 
         assert resp.status_code == 200
@@ -423,7 +431,9 @@ class TestExceptions:
             return _mock_explain_response(order_id=diff.order_id)
 
         initial_count = len(app_state.audit_log)
-        with patch.object(exceptions_router_module, "explain_exception", side_effect=_fake_explain):
+        with patch.object(
+            exceptions_router_module, "explain_exception", side_effect=_fake_explain
+        ):
             client.get(f"/api/exceptions/{exception_id}/explain")
 
         assert len(app_state.audit_log) == initial_count + 1
@@ -469,7 +479,9 @@ class TestChat:
             "answer_question",
             return_value=_mock_qa_response(),
         ):
-            resp = client.post("/api/chat", json={"question": "Why does ORD2024043 show a shortfall?"})
+            resp = client.post(
+                "/api/chat", json={"question": "Why does ORD2024043 show a shortfall?"}
+            )
 
         assert resp.status_code == 200
         body = resp.json()
@@ -538,12 +550,17 @@ class TestAuditLog:
         """An explain call adds an entry that appears in the audit log."""
         _run_reconcile()
         app_state.audit_log.clear()
+        with audit_db._get_conn() as conn:
+            conn.execute("DELETE FROM audit_log")
+            conn.commit()
         exception_id = next(iter(app_state.exception_diffs.keys()))
 
         def _fake_explain(diff):
             return _mock_explain_response(order_id=diff.order_id)
 
-        with patch.object(exceptions_router_module, "explain_exception", side_effect=_fake_explain):
+        with patch.object(
+            exceptions_router_module, "explain_exception", side_effect=_fake_explain
+        ):
             client.get(f"/api/exceptions/{exception_id}/explain")
 
         resp = client.get("/api/audit-log")
@@ -561,9 +578,13 @@ class TestAuditLog:
         def _fake_explain(diff):
             return _mock_explain_response(order_id=diff.order_id)
 
-        with patch.object(exceptions_router_module, "explain_exception", side_effect=_fake_explain):
+        with patch.object(
+            exceptions_router_module, "explain_exception", side_effect=_fake_explain
+        ):
             client.get(f"/api/exceptions/{exception_id}/explain")
-        with patch.object(chat_router_module, "answer_question", return_value=_mock_qa_response()):
+        with patch.object(
+            chat_router_module, "answer_question", return_value=_mock_qa_response()
+        ):
             client.post("/api/chat", json={"question": "How many exceptions?"})
 
         resp = client.get("/api/audit-log?event_type=llm_explanation")
@@ -573,7 +594,9 @@ class TestAuditLog:
     def test_event_type_filter_qa(self) -> None:
         """Filter by llm_qa_query returns only Q&A entries."""
         _run_reconcile()
-        with patch.object(chat_router_module, "answer_question", return_value=_mock_qa_response()):
+        with patch.object(
+            chat_router_module, "answer_question", return_value=_mock_qa_response()
+        ):
             client.post("/api/chat", json={"question": "How many exceptions?"})
 
         resp = client.get("/api/audit-log?event_type=llm_qa_query")
@@ -590,6 +613,9 @@ class TestAuditLog:
         """Audit log entries are returned most-recent-first."""
         _run_reconcile()
         app_state.audit_log.clear()
+        with audit_db._get_conn() as conn:
+            conn.execute("DELETE FROM audit_log")
+            conn.commit()
         # Make two explain calls for different orders
         exception_ids = list(app_state.exception_diffs.keys())[:2]
 
@@ -599,7 +625,9 @@ class TestAuditLog:
             call_order.append(diff.order_id)
             return _mock_explain_response(order_id=diff.order_id)
 
-        with patch.object(exceptions_router_module, "explain_exception", side_effect=_fake_explain):
+        with patch.object(
+            exceptions_router_module, "explain_exception", side_effect=_fake_explain
+        ):
             for eid in exception_ids:
                 client.get(f"/api/exceptions/{eid}/explain")
 
@@ -610,16 +638,17 @@ class TestAuditLog:
         assert items[0]["order_id"] == call_order[-1]
         assert items[1]["order_id"] == call_order[0]
 
-
     def test_pagination(self) -> None:
         """Pagination works on audit log."""
         _run_reconcile()
         app_state.audit_log.clear()
+        with audit_db._get_conn() as conn:
+            conn.execute("DELETE FROM audit_log")
+            conn.commit()
         # Insert 5 fake audit entries directly
         for i in range(5):
-            app_state.add_audit_entry(
-                _make_audit_entry(order_id=f"ORD{i:04d}")
-            )
+            entry = _make_audit_entry(order_id=f"ORD{i:04d}")
+            app_state.add_audit_entry(entry)
 
         resp = client.get("/api/audit-log?page_size=3")
         body = resp.json()

@@ -25,17 +25,16 @@ Design principles:
 from __future__ import annotations
 
 import json
+import sys
 import time
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
-from decimal import Decimal
-import sys
 
 if sys.version_info >= (3, 10):
     from typing import TypeAlias
 else:
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 
 from rapidfuzz import fuzz
 
@@ -108,17 +107,13 @@ class MatchingConfig:
     fuzzy_utr_threshold: float = 60.0
 
     # Settlement → bank statement amount tolerance (INR)
-    bank_amount_tolerance: Decimal = field(
-        default_factory=lambda: Decimal("0.50")
-    )
+    bank_amount_tolerance: Decimal = field(default_factory=lambda: Decimal("0.50"))
 
     def __post_init__(self) -> None:
         """Validate that weights sum to 1.0 (within float precision)."""
         total = self.amount_weight + self.reference_weight + self.date_weight
         if abs(total - 1.0) > 1e-9:
-            raise ValueError(
-                f"MatchingConfig weights must sum to 1.0, got {total:.6f}"
-            )
+            raise ValueError(f"MatchingConfig weights must sum to 1.0, got {total:.6f}")
 
 
 # ── Result data classes ───────────────────────────────────────────────────────
@@ -137,18 +132,18 @@ class ScoreBreakdown:
     """
 
     # Order ↔ Settlement signals
-    amount_score: float = 0.0        # how well settled+fee+tax ≈ order.amount
-    reference_score: float = 0.0     # fuzzy UTR match between settlement and bank
-    date_score: float = 0.0          # proximity of settled_date to order_date
+    amount_score: float = 0.0  # how well settled+fee+tax ≈ order.amount
+    reference_score: float = 0.0  # fuzzy UTR match between settlement and bank
+    date_score: float = 0.0  # proximity of settled_date to order_date
 
     # Settlement ↔ Bank signals
-    bank_amount_score: float = 0.0   # settled_amount vs credit_amount
-    bank_utr_score: float = 0.0      # UTR fuzzy match settlement ↔ bank
+    bank_amount_score: float = 0.0  # settled_amount vs credit_amount
+    bank_utr_score: float = 0.0  # UTR fuzzy match settlement ↔ bank
 
     # Derived / diagnostic
     amount_diff_inr: Decimal = field(default_factory=Decimal)
     date_diff_days: int = 0
-    best_utr_ratio: float = 0.0      # raw rapidfuzz score for audit trail
+    best_utr_ratio: float = 0.0  # raw rapidfuzz score for audit trail
 
     def to_json(self) -> str:
         """Serialise to JSON string for storage in the audit/result row."""
@@ -177,7 +172,7 @@ class MatchResult:
     """
 
     order_id: str
-    composite_score: float       # weighted sum ∈ [0.0, 1.0]
+    composite_score: float  # weighted sum ∈ [0.0, 1.0]
     score_breakdown: ScoreBreakdown
 
     # Best-match references (None if no viable candidate found)
@@ -238,8 +233,7 @@ def _score_amount(
 
     # Linear decay — keep arithmetic in Decimal to avoid float drift
     score = float(
-        Decimal("1.0")
-        - (diff - cfg.amount_full_score_tolerance) / tolerance_range
+        Decimal("1.0") - (diff - cfg.amount_full_score_tolerance) / tolerance_range
     )
     return max(0.0, min(1.0, score)), diff
 
@@ -319,9 +313,7 @@ def _score_bank_link(
     """
     # Amount: settled_amount should equal bank credit_amount (tight tolerance)
     amount_diff = abs(settlement.settled_amount - bank.credit_amount)
-    bank_amount_score = (
-        1.0 if amount_diff <= cfg.bank_amount_tolerance else 0.0
-    )
+    bank_amount_score = 1.0 if amount_diff <= cfg.bank_amount_tolerance else 0.0
 
     raw_ratio = _best_utr_ratio(
         settlement.utr_canonical,
@@ -649,19 +641,13 @@ def match_order(
         matched_settlement_order_id=(
             best_settlement.order_id if best_settlement else None
         ),
-        matched_bank_utr=(
-            best_bank.utr_reference if best_bank else None
-        ),
+        matched_bank_utr=(best_bank.utr_reference if best_bank else None),
         order_amount=order.amount,
-        settled_amount=(
-            best_settlement.settled_amount if best_settlement else None
-        ),
+        settled_amount=(best_settlement.settled_amount if best_settlement else None),
         fee=best_settlement.fee if best_settlement else None,
         tax_on_fee=best_settlement.tax_on_fee if best_settlement else None,
         order_date=order.order_date,
-        settled_date=(
-            best_settlement.settled_date if best_settlement else None
-        ),
+        settled_date=(best_settlement.settled_date if best_settlement else None),
     )
 
 
@@ -694,7 +680,15 @@ def run_matching(
 
     t0 = time.perf_counter()
     results = [
-        match_order(order, settlements, bank_txns, utr_index, order_id_index, bank_utr_index, cfg)
+        match_order(
+            order,
+            settlements,
+            bank_txns,
+            utr_index,
+            order_id_index,
+            bank_utr_index,
+            cfg,
+        )
         for order in orders
     ]
     elapsed = time.perf_counter() - t0
@@ -760,7 +754,7 @@ def detect_unmatched_bank_credits(
 
 def detect_duplicate_settlements(
     settlements: list[NormalisedSettlement],
-) -> dict[str, list[NormalisedSettlement]]:
+) -> set[str]:
     """Find order_ids that appear more than once in the settlement report.
 
     A legitimate order should have exactly one settlement. Multiple settlements
@@ -803,13 +797,13 @@ def detect_ambiguous_bank_matches(
     results: list[MatchResult],
 ) -> set[str]:
     """Find orders that matched a bank row that was also claimed by another order with the same score.
-    
-    If multiple orders matched the same bank transaction UTR, and their reference scores 
+
+    If multiple orders matched the same bank transaction UTR, and their reference scores
     are identical (or very close), they are both ambiguous.
-    
+
     Args:
         results: All match results.
-        
+
     Returns:
         Set of ``order_id`` strings that have ambiguous bank matches.
     """
@@ -817,7 +811,7 @@ def detect_ambiguous_bank_matches(
     for r in results:
         if r.matched_bank_utr:
             bank_claims.setdefault(r.matched_bank_utr, []).append(r)
-            
+
     ambiguous_order_ids = set()
     for utr, claims in bank_claims.items():
         if len(claims) > 1:
@@ -825,8 +819,12 @@ def detect_ambiguous_bank_matches(
             # Find the max reference_score for this bank row
             max_score = max(c.score_breakdown.reference_score for c in claims)
             # Find all claims that are near this max score
-            tied_claims = [c for c in claims if abs(c.score_breakdown.reference_score - max_score) < 0.01]
+            tied_claims = [
+                c
+                for c in claims
+                if abs(c.score_breakdown.reference_score - max_score) < 0.01
+            ]
             if len(tied_claims) > 1:
                 ambiguous_order_ids.update(c.order_id for c in tied_claims)
-                
+
     return ambiguous_order_ids

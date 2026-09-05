@@ -64,8 +64,7 @@ def list_transactions(
         raise HTTPException(
             status_code=422,
             detail=(
-                f"Invalid status '{status}'. "
-                f"Valid values: {sorted(valid_statuses)}"
+                f"Invalid status '{status}'. " f"Valid values: {sorted(valid_statuses)}"
             ),
         )
 
@@ -96,7 +95,9 @@ def list_transactions(
                 composite_score=round(mr.composite_score, 4),
                 anomaly_flags=cr.anomaly_flags,
                 order_amount=float(mr.order_amount),
-                settled_amount=float(mr.settled_amount) if mr.settled_amount is not None else None,
+                settled_amount=(
+                    float(mr.settled_amount) if mr.settled_amount is not None else None
+                ),
                 fee=float(mr.fee) if mr.fee is not None else None,
                 matched_settlement_id=mr.matched_settlement_id,
                 order_date=mr.order_date.isoformat() if mr.order_date else None,

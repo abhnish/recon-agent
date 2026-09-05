@@ -40,7 +40,9 @@ OUTPUT_DIR = Path(__file__).parent
 
 # ─── Constants & Parameters ──────────────────────────────────────────────────
 parser = argparse.ArgumentParser(description="Generate synthetic data")
-parser.add_argument("--size", type=int, default=60, help="Total number of orders to generate")
+parser.add_argument(
+    "--size", type=int, default=60, help="Total number of orders to generate"
+)
 args = parser.parse_args()
 
 TOTAL_ORDERS = args.size
@@ -57,22 +59,47 @@ if N_MISMATCH < 9:
 START_DATE = date(2024, 6, 1)
 END_DATE = date(2024, 8, 31)
 
-CURRENCIES = ["INR"]   # single-currency for v1; multi-currency in a later chunk
+CURRENCIES = ["INR"]  # single-currency for v1; multi-currency in a later chunk
 
 # Razorpay-style fee structure: 2% + GST (18%) on fee
 GATEWAY_FEE_RATE = 0.02
-GST_RATE = 0.18        # GST is applied only to the fee, not the principal
+GST_RATE = 0.18  # GST is applied only to the fee, not the principal
 
 CUSTOMER_NAMES = [
-    "Arjun Mehta", "Priya Sharma", "Rohit Verma", "Sneha Iyer", "Vikram Nair",
-    "Ananya Krishnan", "Karan Gupta", "Meera Pillai", "Nikhil Joshi", "Pooja Rao",
-    "Suresh Patel", "Divya Reddy", "Amit Bose", "Kavitha Menon", "Rahul Singhania",
-    "Shruti Desai", "Aditya Kulkarni", "Nisha Agarwal", "Manish Tiwari", "Ritu Saxena",
-    "Deepak Malhotra", "Swati Choudhury", "Varun Bansal", "Leela Nambiar", "Sanjay Kapoor",
-    "Aarti Bhatt", "Rajesh Dubey", "Preethi Subramaniam", "Mohit Arora", "Sunita Yadav",
+    "Arjun Mehta",
+    "Priya Sharma",
+    "Rohit Verma",
+    "Sneha Iyer",
+    "Vikram Nair",
+    "Ananya Krishnan",
+    "Karan Gupta",
+    "Meera Pillai",
+    "Nikhil Joshi",
+    "Pooja Rao",
+    "Suresh Patel",
+    "Divya Reddy",
+    "Amit Bose",
+    "Kavitha Menon",
+    "Rahul Singhania",
+    "Shruti Desai",
+    "Aditya Kulkarni",
+    "Nisha Agarwal",
+    "Manish Tiwari",
+    "Ritu Saxena",
+    "Deepak Malhotra",
+    "Swati Choudhury",
+    "Varun Bansal",
+    "Leela Nambiar",
+    "Sanjay Kapoor",
+    "Aarti Bhatt",
+    "Rajesh Dubey",
+    "Preethi Subramaniam",
+    "Mohit Arora",
+    "Sunita Yadav",
 ]
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
+
 
 def random_date(start: date, end: date) -> date:
     delta = (end - start).days
@@ -120,7 +147,7 @@ def noisy_utr_format(utr: str, style: int) -> str:
             return f"{m.group(1)}-{m.group(2)}-{m.group(3)}-{m.group(4)}"
         return utr
     if style == 2:
-        return utr[:16]   # truncation — some banks show partial UTR in description
+        return utr[:16]  # truncation — some banks show partial UTR in description
     if style == 3:
         return utr.lower()
     return utr
@@ -183,28 +210,34 @@ for _ in range(N_CLEAN):
     desc_style = int(rng.integers(0, 5))
     bank_desc = noisy_description(customer, utr, style=desc_style)
 
-    orders.append({
-        "order_id": oid,
-        "order_date": order_date.isoformat(),
-        "customer_name": customer,
-        "amount": amount,
-        "currency": "INR",
-    })
-    settlements.append({
-        "settlement_id": sid,
-        "order_id": oid,
-        "settled_date": settled_date.isoformat(),
-        "settled_amount": settled_amount,
-        "fee": fee,
-        "tax_on_fee": tax,
-        "utr_number": utr,
-    })
-    bank_txns.append({
-        "txn_date": settled_date.isoformat(),
-        "description": bank_desc,
-        "credit_amount": settled_amount,
-        "utr_reference": noisy_utr_format(utr, style=int(rng.integers(0, 4))),
-    })
+    orders.append(
+        {
+            "order_id": oid,
+            "order_date": order_date.isoformat(),
+            "customer_name": customer,
+            "amount": amount,
+            "currency": "INR",
+        }
+    )
+    settlements.append(
+        {
+            "settlement_id": sid,
+            "order_id": oid,
+            "settled_date": settled_date.isoformat(),
+            "settled_amount": settled_amount,
+            "fee": fee,
+            "tax_on_fee": tax,
+            "utr_number": utr,
+        }
+    )
+    bank_txns.append(
+        {
+            "txn_date": settled_date.isoformat(),
+            "description": bank_desc,
+            "credit_amount": settled_amount,
+            "utr_reference": noisy_utr_format(utr, style=int(rng.integers(0, 4))),
+        }
+    )
 
     ground_truth["CLEAN_MATCH"].append(oid)
 
@@ -213,9 +246,7 @@ for _ in range(N_CLEAN):
 # Sub-types: partial_refund, rounding_diff, delayed_settlement (3 each)
 
 mismatch_subtypes = (
-    ["partial_refund"] * 3
-    + ["rounding_diff"] * 3
-    + ["delayed_settlement"] * 3
+    ["partial_refund"] * 3 + ["rounding_diff"] * 3 + ["delayed_settlement"] * 3
 )
 random.shuffle(mismatch_subtypes)
 
@@ -243,15 +274,17 @@ for subtype in mismatch_subtypes:
         settlement_lag = int(rng.integers(1, 4))
         settled_date = order_date + timedelta(days=settlement_lag)
 
-        settlements.append({
-            "settlement_id": sid,
-            "order_id": oid,
-            "settled_date": settled_date.isoformat(),
-            "settled_amount": settled_amount,
-            "fee": fee_adj,
-            "tax_on_fee": tax_adj,
-            "utr_number": utr,
-        })
+        settlements.append(
+            {
+                "settlement_id": sid,
+                "order_id": oid,
+                "settled_date": settled_date.isoformat(),
+                "settled_amount": settled_amount,
+                "fee": fee_adj,
+                "tax_on_fee": tax_adj,
+                "utr_number": utr,
+            }
+        )
 
     elif subtype == "rounding_diff":
         # Rounding mismatch: ₹0.01 – ₹2.00 difference (common in GST rounding)
@@ -260,15 +293,17 @@ for subtype in mismatch_subtypes:
         settlement_lag = int(rng.integers(1, 4))
         settled_date = order_date + timedelta(days=settlement_lag)
 
-        settlements.append({
-            "settlement_id": sid,
-            "order_id": oid,
-            "settled_date": settled_date.isoformat(),
-            "settled_amount": settled_amount,
-            "fee": fee,
-            "tax_on_fee": tax,
-            "utr_number": utr,
-        })
+        settlements.append(
+            {
+                "settlement_id": sid,
+                "order_id": oid,
+                "settled_date": settled_date.isoformat(),
+                "settled_amount": settled_amount,
+                "fee": fee,
+                "tax_on_fee": tax,
+                "utr_number": utr,
+            }
+        )
 
     else:  # delayed_settlement
         # Settlement is >5 days after order (T+6 to T+14)
@@ -276,32 +311,38 @@ for subtype in mismatch_subtypes:
         settled_date = order_date + timedelta(days=settlement_lag)
         settled_amount = clean_settled
 
-        settlements.append({
-            "settlement_id": sid,
-            "order_id": oid,
-            "settled_date": settled_date.isoformat(),
-            "settled_amount": settled_amount,
-            "fee": fee,
-            "tax_on_fee": tax,
-            "utr_number": utr,
-        })
+        settlements.append(
+            {
+                "settlement_id": sid,
+                "order_id": oid,
+                "settled_date": settled_date.isoformat(),
+                "settled_amount": settled_amount,
+                "fee": fee,
+                "tax_on_fee": tax,
+                "utr_number": utr,
+            }
+        )
 
     desc_style = int(rng.integers(0, 5))
     bank_desc = noisy_description(customer, utr, style=desc_style)
 
-    orders.append({
-        "order_id": oid,
-        "order_date": order_date.isoformat(),
-        "customer_name": customer,
-        "amount": amount,
-        "currency": "INR",
-    })
-    bank_txns.append({
-        "txn_date": settled_date.isoformat(),
-        "description": bank_desc,
-        "credit_amount": settlements[-1]["settled_amount"],
-        "utr_reference": noisy_utr_format(utr, style=int(rng.integers(0, 4))),
-    })
+    orders.append(
+        {
+            "order_id": oid,
+            "order_date": order_date.isoformat(),
+            "customer_name": customer,
+            "amount": amount,
+            "currency": "INR",
+        }
+    )
+    bank_txns.append(
+        {
+            "txn_date": settled_date.isoformat(),
+            "description": bank_desc,
+            "credit_amount": settlements[-1]["settled_amount"],
+            "utr_reference": noisy_utr_format(utr, style=int(rng.integers(0, 4))),
+        }
+    )
 
     ground_truth["HARD_MISMATCH"].append(f"{oid} ({subtype})")
 
@@ -323,13 +364,15 @@ for i in range(num_failed):
     customer = random.choice(CUSTOMER_NAMES)
     amount = round(float(rng.integers(500, 50_001)), 2)
 
-    orders.append({
-        "order_id": oid,
-        "order_date": order_date.isoformat(),
-        "customer_name": customer,
-        "amount": amount,
-        "currency": "INR",
-    })
+    orders.append(
+        {
+            "order_id": oid,
+            "order_date": order_date.isoformat(),
+            "customer_name": customer,
+            "amount": amount,
+            "currency": "INR",
+        }
+    )
     ground_truth["EXCEPTION"].append(f"{oid} (failed_payment)")
 
 # (b) Phantom bank credits — no UTR in settlement report matches these
@@ -343,12 +386,16 @@ for _ in range(num_phantom):
     customer = random.choice(CUSTOMER_NAMES)
     bank_desc = noisy_description(customer, phantom_utr, style=desc_style)
 
-    bank_txns.append({
-        "txn_date": credit_date.isoformat(),
-        "description": bank_desc,
-        "credit_amount": credit_amount,
-        "utr_reference": noisy_utr_format(phantom_utr, style=int(rng.integers(0, 4))),
-    })
+    bank_txns.append(
+        {
+            "txn_date": credit_date.isoformat(),
+            "description": bank_desc,
+            "credit_amount": credit_amount,
+            "utr_reference": noisy_utr_format(
+                phantom_utr, style=int(rng.integers(0, 4))
+            ),
+        }
+    )
     ground_truth["EXCEPTION"].append(f"phantom_credit UTR={phantom_utr[:20]}...")
 
 # (c) Duplicate settlements
@@ -372,36 +419,48 @@ for i in range(num_duplicate):
     original_settled = date.fromisoformat(settlements[base_idx]["settled_date"])
     dup_settled = original_settled + timedelta(days=int(rng.integers(1, 4)))
 
-    settlements.append({
-        "settlement_id": sid,
-        "order_id": oid,           # ← same order_id as an existing settlement
-        "settled_date": dup_settled.isoformat(),
-        "settled_amount": settled_amount,
-        "fee": fee,
-        "tax_on_fee": tax,
-        "utr_number": dup_utr,
-    })
+    settlements.append(
+        {
+            "settlement_id": sid,
+            "order_id": oid,  # ← same order_id as an existing settlement
+            "settled_date": dup_settled.isoformat(),
+            "settled_amount": settled_amount,
+            "fee": fee,
+            "tax_on_fee": tax,
+            "utr_number": dup_utr,
+        }
+    )
 
     # Bank credit for the duplicate settlement
     customer = src_order["customer_name"]
     desc_style = int(rng.integers(0, 5))
-    bank_txns.append({
-        "txn_date": dup_settled.isoformat(),
-        "description": noisy_description(customer, dup_utr, style=desc_style),
-        "credit_amount": settled_amount,
-        "utr_reference": noisy_utr_format(dup_utr, style=int(rng.integers(0, 4))),
-    })
-
-    ground_truth["EXCEPTION"].append(
-        f"{oid} (duplicate_settlement new_sid={sid})"
+    bank_txns.append(
+        {
+            "txn_date": dup_settled.isoformat(),
+            "description": noisy_description(customer, dup_utr, style=desc_style),
+            "credit_amount": settled_amount,
+            "utr_reference": noisy_utr_format(dup_utr, style=int(rng.integers(0, 4))),
+        }
     )
+
+    ground_truth["EXCEPTION"].append(f"{oid} (duplicate_settlement new_sid={sid})")
 
 
 # ─── Build DataFrames & shuffle ───────────────────────────────────────────────
 
-df_orders = pd.DataFrame(orders).sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
-df_settlements = pd.DataFrame(settlements).sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
-df_bank = pd.DataFrame(bank_txns).sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
+df_orders = (
+    pd.DataFrame(orders).sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
+)
+df_settlements = (
+    pd.DataFrame(settlements)
+    .sample(frac=1, random_state=RANDOM_SEED)
+    .reset_index(drop=True)
+)
+df_bank = (
+    pd.DataFrame(bank_txns)
+    .sample(frac=1, random_state=RANDOM_SEED)
+    .reset_index(drop=True)
+)
 
 # Sort bank statement chronologically (as a real export would be)
 df_bank = df_bank.sort_values("txn_date").reset_index(drop=True)
@@ -447,7 +506,9 @@ print(f"\n⚠️   HARD MISMATCH  ({N_MISMATCH} orders)  — resolvable with con
 for item in ground_truth["HARD_MISMATCH"]:
     print(f"    {item}")
 
-print(f"\n❌  EXCEPTION  ({len(ground_truth['EXCEPTION'])} entries)  — unresolvable without manual action")
+print(
+    f"\n❌  EXCEPTION  ({len(ground_truth['EXCEPTION'])} entries)  — unresolvable without manual action"
+)
 for item in ground_truth["EXCEPTION"]:
     print(f"    {item}")
 
@@ -461,8 +522,6 @@ print(
     f"Total settlements  : {len(df_settlements)}  "
     f"(expected {N_CLEAN + N_MISMATCH + num_duplicate * 2})"
 )
-print(
-    f"Total bank rows    : {len(df_bank)}  "
-)
+print(f"Total bank rows    : {len(df_bank)}  ")
 print("=" * 70)
 print("✓ CSVs written successfully.")

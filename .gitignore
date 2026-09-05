@@ -30,3 +30,7 @@ backend/data/*.sqlite3
 *.log
 backend/before.json
 backend/after.json
+
+# Video Assets
+VIDEO_ASSETS.md
+DEMO.md

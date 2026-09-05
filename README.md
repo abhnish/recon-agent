@@ -4,7 +4,7 @@
 
 ## 1. What is ReconAgent?
 
-Merchants who accept payments via a payment gateway receive three separate, independently-formatted data streams: an internal order ledger (what they sold), a gateway settlement report (what the gateway claims it paid out), and a bank statement (what actually hit the bank account). Reconciling these three datasets manually in spreadsheets does not scale. Mismatches caused by partial refunds, fee-rounding differences, delayed settlements, failed payments, or duplicate payouts often go undetected or are silently written off because investigating them by hand takes too long. ReconAgent automates this entire pipeline. It normalises the sources, deterministically scores and matches transactions, classifies every outcome, and surfaces plain-language explanations for anomalies that require human review — backed by a complete, immutable audit trail.
+Merchants who accept payments via a payment gateway receive three separate, independently-formatted data streams: an internal order ledger (what they sold), a gateway settlement report (what the gateway claims it paid out), and a bank statement (what actually hit the bank account). Reconciling these three datasets manually in spreadsheets does not scale. Mismatches caused by partial refunds, fee-rounding differences, delayed settlements, failed payments, or duplicate payouts often go undetected or are silently written off because investigating them by hand takes too long. ReconAgent automates this entire pipeline. It normalises the sources, deterministically scores and matches transactions, classifies every outcome, and surfaces plain-language explanations for anomalies that require human review — backed by a complete, append-only audit trail.
 
 ## 2. Core Architectural Principle
 
@@ -137,7 +137,7 @@ recon-agent/
    python backend/data/demo_seed.py # Generate curated demo dataset
    
    cd backend
-   uvicorn app.main:app --port 8765
+   uvicorn app.main:app --port 8000
    ```
 3. **Frontend Setup:**
    ```bash
@@ -151,7 +151,7 @@ recon-agent/
 ## 11. Testing
 
 The project uses `pytest` and maintains strict test coverage. Tests live directly alongside the modules they cover.
-- 159/159 tests currently pass.
+- 164/164 tests currently pass.
 - Covers unit testing for individual match signals, integration testing against dataset ground truths, and edge cases (e.g. empty CSVs, negative amounts, ambiguous bank matches, missing dependencies).
 - To run tests:
   ```bash

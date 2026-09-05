@@ -77,6 +77,7 @@ def _make_match_result(
 ) -> MatchResult:
     """Build a minimal MatchResult for testing."""
     from datetime import date
+
     return MatchResult(
         order_id=order_id,
         composite_score=composite_score,
@@ -164,7 +165,9 @@ class TestExplainException:
             "not recorded. Check for an unrecorded refund entry in the gateway."
         )
         with (
-            patch.object(llm_layer, "_build_client", return_value=_mock_model(fake_text)),
+            patch.object(
+                llm_layer, "_build_client", return_value=_mock_model(fake_text)
+            ),
         ):
             resp = explain_exception(partial_refund_diff)
 
@@ -210,14 +213,14 @@ class TestExplainException:
     ) -> None:
         """The audit entry records the full response text."""
         fake_text = "Settlement ₹340.00 short. Likely partial refund."
-        with patch.object(llm_layer, "_build_client", return_value=_mock_model(fake_text)):
+        with patch.object(
+            llm_layer, "_build_client", return_value=_mock_model(fake_text)
+        ):
             resp = explain_exception(partial_refund_diff)
 
         assert resp.audit_entry.response_text == fake_text
 
-    def test_raw_diff_always_present(
-        self, partial_refund_diff: ExceptionDiff
-    ) -> None:
+    def test_raw_diff_always_present(self, partial_refund_diff: ExceptionDiff) -> None:
         """raw_diff is populated regardless of llm_status."""
         with patch.object(llm_layer, "_build_client", return_value=_mock_model()):
             resp = explain_exception(partial_refund_diff)
@@ -337,7 +340,9 @@ class TestRetryBehaviour:
     ) -> None:
         """When all retries fail, llm_status='fallback' is returned — no exception raised."""
         mock_client = MagicMock()
-        mock_client.models.generate_content.side_effect = ResourceExhausted("always rate limited")
+        mock_client.models.generate_content.side_effect = ResourceExhausted(
+            "always rate limited"
+        )
 
         with (
             patch.object(llm_layer, "_build_client", return_value=mock_client),
@@ -415,9 +420,7 @@ class TestHallucinationGuard:
         self, partial_refund_diff: ExceptionDiff
     ) -> None:
         """Hallucination flag is True when response contains a number not in the diff."""
-        response = (
-            "The order ORD2024043 has a shortfall of ₹99999.99 which is not in any record."
-        )
+        response = "The order ORD2024043 has a shortfall of ₹99999.99 which is not in any record."
         assert _check_hallucination(response, partial_refund_diff)
 
     def test_audit_entry_flags_hallucination(
@@ -437,7 +440,9 @@ class TestHallucinationGuard:
         self, partial_refund_diff: ExceptionDiff
     ) -> None:
         """potential_hallucination=False when all response numbers are in the diff."""
-        clean_text = "The settlement amount of ₹4660.00 does not match the order amount."
+        clean_text = (
+            "The settlement amount of ₹4660.00 does not match the order amount."
+        )
         mock_model = _mock_model(clean_text)
         with patch.object(llm_layer, "_build_client", return_value=mock_model):
             resp = explain_exception(partial_refund_diff)
@@ -569,9 +574,21 @@ class TestRetrieveContext:
 
     def _records(self) -> list[dict]:
         return [
-            {"order_id": "ORD2024043", "status": "NEEDS_REVIEW", "subtype": "PARTIAL_REFUND"},
-            {"order_id": "ORD2024046", "status": "NEEDS_REVIEW", "subtype": "ROUNDING_DIFF"},
-            {"order_id": "ORD2024052", "status": "UNRESOLVED", "subtype": "FAILED_PAYMENT"},
+            {
+                "order_id": "ORD2024043",
+                "status": "NEEDS_REVIEW",
+                "subtype": "PARTIAL_REFUND",
+            },
+            {
+                "order_id": "ORD2024046",
+                "status": "NEEDS_REVIEW",
+                "subtype": "ROUNDING_DIFF",
+            },
+            {
+                "order_id": "ORD2024052",
+                "status": "UNRESOLVED",
+                "subtype": "FAILED_PAYMENT",
+            },
         ]
 
     def test_order_id_match_takes_priority(self) -> None:
@@ -599,5 +616,7 @@ class TestRetrieveContext:
 
     def test_summary_question_returns_all_records(self) -> None:
         """'how many' question returns all records for a full summary."""
-        records, _ = _retrieve_context("how many exceptions do we have?", self._records())
+        records, _ = _retrieve_context(
+            "how many exceptions do we have?", self._records()
+        )
         assert len(records) == len(self._records())

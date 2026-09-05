@@ -301,7 +301,9 @@ class TestSubtypeDetermination:
             unresolved_threshold=0.50,
         )
         # Score=0.97 would be AUTO_MATCHED with defaults but NEEDS_REVIEW with strict
-        result = _make_result(composite_score=0.97, amount_diff_inr="0.00", date_diff_days=1)
+        result = _make_result(
+            composite_score=0.97, amount_diff_inr="0.00", date_diff_days=1
+        )
         cr = classify(result, strict_cfg)
         assert cr.status == ReconStatus.NEEDS_REVIEW
 
@@ -337,12 +339,15 @@ class TestBuildDiff:
         # All entries should have actual=None (nothing was found)
         for entry in diff.entries:
             if entry.weight > 0:  # skip informational sub-entries
-                assert entry.actual is None, (
-                    f"Entry {entry.field_name!r} has actual={entry.actual!r}, expected None"
-                )
+                assert (
+                    entry.actual is None
+                ), f"Entry {entry.field_name!r} has actual={entry.actual!r}, expected None"
 
         # Resolution hint should be meaningful (not empty)
-        assert "gateway" in diff.resolution_hint.lower() or "check" in diff.resolution_hint.lower()
+        assert (
+            "gateway" in diff.resolution_hint.lower()
+            or "check" in diff.resolution_hint.lower()
+        )
 
     def test_diff_shortfall_calculation_correct(self) -> None:
         """Shortfall = auto_match_threshold − composite_score."""
@@ -359,13 +364,14 @@ class TestBuildDiff:
         cr = classify(result)
         diff = build_diff(cr)
         shortfall_entries = [e for e in diff.entries if e.is_shortfall]
-        assert shortfall_entries == [], (
-            f"AUTO_MATCHED diff should have no shortfall entries; got {shortfall_entries}"
-        )
+        assert (
+            shortfall_entries == []
+        ), f"AUTO_MATCHED diff should have no shortfall entries; got {shortfall_entries}"
 
     def test_diff_to_dict_is_json_serialisable(self) -> None:
         """Diff dict must be JSON-serialisable (required for LLM context injection)."""
         import json
+
         result = _make_no_candidate_result()
         cr = classify(result)
         diff = build_diff(cr)
@@ -389,13 +395,18 @@ class TestBuildDiff:
             (i for i, e in enumerate(diff.entries) if e.is_shortfall), None
         )
         last_non_shortfall_idx = next(
-            (i for i, e in reversed(list(enumerate(diff.entries))) if not e.is_shortfall), None
+            (
+                i
+                for i, e in reversed(list(enumerate(diff.entries)))
+                if not e.is_shortfall
+            ),
+            None,
         )
 
         if first_shortfall_idx is not None and last_non_shortfall_idx is not None:
-            assert first_shortfall_idx < last_non_shortfall_idx, (
-                "Shortfall entries should appear before non-shortfall entries"
-            )
+            assert (
+                first_shortfall_idx < last_non_shortfall_idx
+            ), "Shortfall entries should appear before non-shortfall entries"
 
 
 # ── Tests: exception list builder ─────────────────────────────────────────────
@@ -417,14 +428,14 @@ class TestBuildExceptionList:
     def test_near_misses_sorted_first(self) -> None:
         """Near-misses (higher score) should appear before low-scoring exceptions."""
         results = [
-            _make_result("ORD_LOW",  composite_score=0.50, amount_diff_inr="3000.00"),
+            _make_result("ORD_LOW", composite_score=0.50, amount_diff_inr="3000.00"),
             _make_result("ORD_HIGH", composite_score=0.90, amount_diff_inr="1.59"),
         ]
         crs = classify_all(results)
         exceptions = build_exception_list(crs)
-        assert exceptions[0].order_id == "ORD_HIGH", (
-            "Higher-scoring near-miss should come first"
-        )
+        assert (
+            exceptions[0].order_id == "ORD_HIGH"
+        ), "Higher-scoring near-miss should come first"
 
     def test_unresolved_after_needs_review(self) -> None:
         """UNRESOLVED results should appear after NEEDS_REVIEW results."""
@@ -436,8 +447,12 @@ class TestBuildExceptionList:
         exceptions = build_exception_list(crs)
         statuses = [d.status for d in exceptions]
         # NEEDS_REVIEW should come before UNRESOLVED
-        nr_idx = next((i for i, s in enumerate(statuses) if s == ReconStatus.NEEDS_REVIEW), None)
-        ur_idx = next((i for i, s in enumerate(statuses) if s == ReconStatus.UNRESOLVED), None)
+        nr_idx = next(
+            (i for i, s in enumerate(statuses) if s == ReconStatus.NEEDS_REVIEW), None
+        )
+        ur_idx = next(
+            (i for i, s in enumerate(statuses) if s == ReconStatus.UNRESOLVED), None
+        )
         if nr_idx is not None and ur_idx is not None:
             assert nr_idx < ur_idx
 
@@ -454,11 +469,11 @@ class TestBuildExceptionList:
         assert "ORD002" in order_ids
 
     def test_duplicate_settlement_override_applied(self) -> None:
-        """classify_all with duplicate_order_ids overrides subtype correctly."""
+        """classify_all with duplicate_settlement_order_ids overrides subtype correctly."""
         results = [
             _make_result("ORD001", composite_score=0.975, amount_diff_inr="0.00"),
         ]
-        crs = classify_all(results, duplicate_order_ids={"ORD001"})
+        crs = classify_all(results, duplicate_settlement_order_ids={"ORD001"})
         assert crs[0].status == ReconStatus.NEEDS_REVIEW
         assert crs[0].subtype == ExceptionSubtype.DUPLICATE_SETTLEMENT
         assert "duplicate_settlement_exists" in crs[0].anomaly_flags
@@ -473,25 +488,29 @@ class TestIntegrationClassification:
     @pytest.fixture(scope="class")
     def pipeline(self):
         if not DATA_DIR.exists():
-            pytest.skip("Synthetic data CSVs not found — run generate_synthetic_data.py first")
+            pytest.skip(
+                "Synthetic data CSVs not found — run generate_synthetic_data.py first"
+            )
 
         def load(name: str) -> list[dict]:
             with open(DATA_DIR / name, newline="", encoding="utf-8") as f:
                 return list(csv.DictReader(f))
 
-        orders      = [normalise_order(r)      for r in load("order_ledger.csv")]
-        settlements = [normalise_settlement(r)  for r in load("settlement_report.csv")]
-        bank_txns   = [normalise_bank_txn(r)    for r in load("bank_statement.csv")]
+        orders = [normalise_order(r) for r in load("order_ledger.csv")]
+        settlements = [normalise_settlement(r) for r in load("settlement_report.csv")]
+        bank_txns = [normalise_bank_txn(r) for r in load("bank_statement.csv")]
 
         match_results, _ = run_matching(orders, settlements, bank_txns)
 
-        dupes     = detect_duplicate_settlements(settlements)
-        phantoms  = detect_unmatched_bank_credits(bank_txns, settlements)
+        dupes = detect_duplicate_settlements(settlements)
+        phantoms = detect_unmatched_bank_credits(bank_txns, settlements)
 
-        duplicate_order_ids = set(dupes.keys())
+        duplicate_order_ids = dupes
 
         cfg = ClassificationConfig()
-        classified = classify_all(match_results, cfg, duplicate_order_ids=duplicate_order_ids)
+        classified = classify_all(
+            match_results, cfg, duplicate_settlement_order_ids=duplicate_order_ids
+        )
         exceptions = build_exception_list(classified)
 
         return {
@@ -513,19 +532,20 @@ class TestIntegrationClassification:
         """
         by_order = pipeline["by_order"]
         dupes = pipeline["dupes"]
-        duplicate_order_ids = set(dupes.keys())
+        duplicate_order_ids = dupes
 
         not_matched = [
-            oid for oid in CLEAN_ORDER_IDS
+            oid
+            for oid in CLEAN_ORDER_IDS
             if (
                 oid in by_order
                 and by_order[oid].status != ReconStatus.AUTO_MATCHED
                 and oid not in duplicate_order_ids  # these are legitimately downgraded
             )
         ]
-        assert not_matched == [], (
-            f"{len(not_matched)} clean (non-duplicate) orders not AUTO_MATCHED: {not_matched}"
-        )
+        assert (
+            not_matched == []
+        ), f"{len(not_matched)} clean (non-duplicate) orders not AUTO_MATCHED: {not_matched}"
 
     def test_failed_payments_are_unresolved(self, pipeline) -> None:
         """All 3 failed-payment orders must be UNRESOLVED / FAILED_PAYMENT."""
@@ -533,9 +553,9 @@ class TestIntegrationClassification:
         for oid in FAILED_PAYMENT_IDS:
             if oid in by_order:
                 cr = by_order[oid]
-                assert cr.status == ReconStatus.UNRESOLVED, (
-                    f"{oid} should be UNRESOLVED, got {cr.status}"
-                )
+                assert (
+                    cr.status == ReconStatus.UNRESOLVED
+                ), f"{oid} should be UNRESOLVED, got {cr.status}"
                 assert cr.subtype == ExceptionSubtype.FAILED_PAYMENT
 
     def test_summary_counts_are_consistent(self, pipeline) -> None:
@@ -551,27 +571,31 @@ class TestIntegrationClassification:
         # which are also in duplicate_settlements — those are downgraded to NR.
         # So AUTO_MATCHED = 42 − 3 = 39 (depending on overlap).
         # Accept 39–42 to be robust.
-        assert 36 <= summary["AUTO_MATCHED"] <= 42, (
-            f"AUTO_MATCHED count {summary['AUTO_MATCHED']} out of expected range"
-        )
+        assert (
+            36 <= summary["AUTO_MATCHED"] <= 42
+        ), f"AUTO_MATCHED count {summary['AUTO_MATCHED']} out of expected range"
 
     def test_unresolved_count_equals_failed_payments(self, pipeline) -> None:
         """UNRESOLVED should contain exactly the 3 failed-payment orders."""
         summary = pipeline["summary"]
-        assert summary["UNRESOLVED"] == 3, (
-            f"Expected 3 UNRESOLVED, got {summary['UNRESOLVED']}"
-        )
+        assert (
+            summary["UNRESOLVED"] == 3
+        ), f"Expected 3 UNRESOLVED, got {summary['UNRESOLVED']}"
 
     def test_exception_list_near_misses_first(self, pipeline) -> None:
         """Exception list: NEEDS_REVIEW items before UNRESOLVED, higher score first."""
         exceptions = pipeline["exceptions"]
-        nr_indices = [i for i, d in enumerate(exceptions) if d.status == ReconStatus.NEEDS_REVIEW]
-        ur_indices = [i for i, d in enumerate(exceptions) if d.status == ReconStatus.UNRESOLVED]
+        nr_indices = [
+            i for i, d in enumerate(exceptions) if d.status == ReconStatus.NEEDS_REVIEW
+        ]
+        ur_indices = [
+            i for i, d in enumerate(exceptions) if d.status == ReconStatus.UNRESOLVED
+        ]
 
         if nr_indices and ur_indices:
-            assert max(nr_indices) < min(ur_indices), (
-                "All NEEDS_REVIEW items should precede UNRESOLVED items"
-            )
+            assert max(nr_indices) < min(
+                ur_indices
+            ), "All NEEDS_REVIEW items should precede UNRESOLVED items"
 
     def test_no_candidate_diffs_are_valid(self, pipeline) -> None:
         """UNRESOLVED diffs (no candidate) should be non-null and non-crashing."""
@@ -588,6 +612,7 @@ class TestIntegrationClassification:
     def test_exception_diffs_json_serialisable(self, pipeline) -> None:
         """All exception diffs must be JSON-serialisable."""
         import json
+
         for diff in pipeline["exceptions"]:
             payload = json.dumps(diff.to_dict())
             parsed = json.loads(payload)
@@ -597,9 +622,8 @@ class TestIntegrationClassification:
         """Orders with duplicate settlements should appear in the exception list."""
         exceptions = pipeline["exceptions"]
         dup_subtypes = [
-            d for d in exceptions
-            if d.subtype == ExceptionSubtype.DUPLICATE_SETTLEMENT
+            d for d in exceptions if d.subtype == ExceptionSubtype.DUPLICATE_SETTLEMENT
         ]
-        assert len(dup_subtypes) >= 1, (
-            "At least 1 order with DUPLICATE_SETTLEMENT should be in exception list"
-        )
+        assert (
+            len(dup_subtypes) >= 1
+        ), "At least 1 order with DUPLICATE_SETTLEMENT should be in exception list"

@@ -25,10 +25,10 @@ from app.services.classification import classify_all, summarise
 from app.services.exception_diff import build_exception_list
 from app.services.llm_layer import AuditEventType, AuditLogEntry
 from app.services.matching import (
-    detect_duplicate_settlements,
-    detect_duplicate_orders,
-    detect_unmatched_bank_credits,
     detect_ambiguous_bank_matches,
+    detect_duplicate_orders,
+    detect_duplicate_settlements,
+    detect_unmatched_bank_credits,
     run_matching,
 )
 from app.services.normalisation import (
@@ -150,7 +150,6 @@ def run_reconciliation() -> ReconcileRunResponse:
     if not raw_orders and not raw_settlements and not raw_bank:
         pass  # Gracefully handle empty datasets
 
-
     orders = [normalise_order(r) for r in raw_orders]
     settlements = [normalise_settlement(r) for r in raw_settlements]
     bank_txns = [normalise_bank_txn(r) for r in raw_bank]
@@ -197,7 +196,7 @@ def run_reconciliation() -> ReconcileRunResponse:
         app_state.exception_diffs = exception_index
         app_state.last_run = meta
         app_state.all_runs.append(meta)
-        
+
     # Emit Audit Log Entry
     summary_text = (
         f"Orders: {len(orders)}, Settlements: {len(settlements)}, "
@@ -217,16 +216,18 @@ def run_reconciliation() -> ReconcileRunResponse:
     app_state.add_audit_entry(audit)
 
     import json
-    
+
     # Emit match decision audit logs
     for cr in classified:
-        decision_summary = json.dumps({
-            "status": cr.status.value,
-            "subtype": cr.subtype.value,
-            "score": round(cr.composite_score, 3),
-            "flags": cr.anomaly_flags
-        })
-        
+        decision_summary = json.dumps(
+            {
+                "status": cr.status.value,
+                "subtype": cr.subtype.value,
+                "score": round(cr.composite_score, 3),
+                "flags": cr.anomaly_flags,
+            }
+        )
+
         decision_audit = AuditLogEntry(
             event_type=AuditEventType.MATCH_DECISION,
             order_id=cr.order_id,

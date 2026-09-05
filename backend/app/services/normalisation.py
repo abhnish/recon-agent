@@ -61,8 +61,8 @@ class NormalisedSettlement:
     settled_amount: Decimal
     fee: Decimal
     tax_on_fee: Decimal
-    utr_number: str           # raw as-stored in settlement report
-    utr_canonical: str        # canonicalised for matching
+    utr_number: str  # raw as-stored in settlement report
+    utr_canonical: str  # canonicalised for matching
 
 
 @dataclass(frozen=True)
@@ -72,8 +72,8 @@ class NormalisedBankTxn:
     txn_date: date
     description: str
     credit_amount: Decimal
-    utr_reference: str        # raw as-stored in bank statement
-    utr_canonical: str        # canonicalised for matching
+    utr_reference: str  # raw as-stored in bank statement
+    utr_canonical: str  # canonicalised for matching
     extracted_utrs: tuple[str, ...]  # UTR candidates mined from description text
 
 
@@ -235,7 +235,7 @@ def normalise_bank_txn(row: dict) -> NormalisedBankTxn:
     raw_ref = str(row.get("utr_reference", "")).strip() or "UNKNOWN_UTR"
     description = str(row.get("description", "")).strip()
     extracted = extract_utrs_from_description(description)
-    
+
     try:
         utr_canonical = canonicalise_utr(raw_ref)
     except ValueError:

@@ -37,8 +37,7 @@ def get_metrics() -> MetricsResponse:
         raise HTTPException(
             status_code=409,
             detail=(
-                "No reconciliation run found. "
-                "Call POST /api/reconcile/run first."
+                "No reconciliation run found. " "Call POST /api/reconcile/run first."
             ),
         )
 

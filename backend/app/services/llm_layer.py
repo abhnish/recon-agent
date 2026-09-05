@@ -276,7 +276,7 @@ def _call_with_retry(
             return response.text, model_name
         except (ResourceExhausted, ServiceUnavailable) as exc:
             last_exc = exc
-            wait_s = min(_BACKOFF_BASE_S * (_BACKOFF_FACTOR ** attempt), _BACKOFF_MAX_S)
+            wait_s = min(_BACKOFF_BASE_S * (_BACKOFF_FACTOR**attempt), _BACKOFF_MAX_S)
             logger.warning(
                 "Gemini rate-limit hit (attempt %d/%d). Backing off %.1fs. Error: %s",
                 attempt + 1,
@@ -624,8 +624,7 @@ def answer_question(
     context_json = json.dumps(relevant_records, indent=2, default=str)
     prompt = _build_qa_prompt(question, context_json)
     prompt_summary = (
-        f"qa: {question[:120]} | "
-        f"context_records={len(relevant_records)}"
+        f"qa: {question[:120]} | " f"context_records={len(relevant_records)}"
     )
 
     # ── Call Gemini with retry ────────────────────────────────────────────────
@@ -750,8 +749,7 @@ def _retrieve_context(
     for subtype_val, keywords in subtype_keywords.items():
         if any(kw in q_lower for kw in keywords):
             matched = [
-                r for r in results
-                if str(r.get("subtype", "")).upper() == subtype_val
+                r for r in results if str(r.get("subtype", "")).upper() == subtype_val
             ]
             if matched:
                 return (
@@ -764,8 +762,15 @@ def _retrieve_context(
     # "how many exceptions" from being hijacked by the "exception" → UNRESOLVED
     # keyword match, which would return an incomplete subset.
     summary_triggers = [
-        "how many", "total", "count", "summary", "breakdown",
-        "overview", "all", "list", "show me",
+        "how many",
+        "total",
+        "count",
+        "summary",
+        "breakdown",
+        "overview",
+        "all",
+        "list",
+        "show me",
     ]
     if any(t in q_lower for t in summary_triggers):
         return results, f"Full dataset ({len(results)} records)"
@@ -779,8 +784,7 @@ def _retrieve_context(
     for status_val, keywords in status_keywords.items():
         if any(kw in q_lower for kw in keywords):
             matched = [
-                r for r in results
-                if str(r.get("status", "")).upper() == status_val
+                r for r in results if str(r.get("status", "")).upper() == status_val
             ]
             if matched:
                 return (

@@ -97,7 +97,7 @@ class ExceptionDiff:
     status: ReconStatus
     subtype: ExceptionSubtype
     composite_score: float
-    shortfall: float          # auto_match_threshold − composite_score (≤ 0 for NR)
+    shortfall: float  # auto_match_threshold − composite_score (≤ 0 for NR)
     anomaly_flags: list[str]
     entries: list[DiffEntry]
     resolution_hint: str
@@ -418,10 +418,7 @@ def build_exception_list(
     )
 
     # Build diffs
-    diffs = [
-        build_diff(cr, matching_cfg, classification_cfg)
-        for cr in to_diff
-    ]
+    diffs = [build_diff(cr, matching_cfg, classification_cfg) for cr in to_diff]
 
     # Sort: NEEDS_REVIEW before UNRESOLVED, then by descending composite_score
     # (higher score = closer to resolution = near-miss first).

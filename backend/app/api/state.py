@@ -27,10 +27,10 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass, field
 
+from app.services.audit_db import persist_entry as _persist_to_db
 from app.services.classification import ClassifiedResult, ReconStatus
 from app.services.exception_diff import ExceptionDiff
 from app.services.llm_layer import AuditLogEntry
-from app.services.audit_db import persist_entry as _persist_to_db
 
 # ── App state ──────────────────────────────────────────────────────────────────
 
@@ -144,9 +144,15 @@ class AppState:
             }
 
         total = len(self.classified_results)
-        auto = sum(1 for cr in self.classified_results if cr.status == ReconStatus.AUTO_MATCHED)
-        review = sum(1 for cr in self.classified_results if cr.status == ReconStatus.NEEDS_REVIEW)
-        unresolved = sum(1 for cr in self.classified_results if cr.status == ReconStatus.UNRESOLVED)
+        auto = sum(
+            1 for cr in self.classified_results if cr.status == ReconStatus.AUTO_MATCHED
+        )
+        review = sum(
+            1 for cr in self.classified_results if cr.status == ReconStatus.NEEDS_REVIEW
+        )
+        unresolved = sum(
+            1 for cr in self.classified_results if cr.status == ReconStatus.UNRESOLVED
+        )
 
         value_auto = sum(
             float(cr.match_result.order_amount)
@@ -161,7 +167,8 @@ class AppState:
 
         avg_rt = (
             sum(r.runtime_ms for r in self.all_runs) / len(self.all_runs)
-            if self.all_runs else 0.0
+            if self.all_runs
+            else 0.0
         )
 
         return {

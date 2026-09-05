@@ -99,7 +99,7 @@ INSERT INTO audit_log (
 """
 
 
-def persist_entry(entry: "AuditLogEntry") -> None:
+def persist_entry(entry: AuditLogEntry) -> None:
     """Insert one AuditLogEntry into the SQLite audit_log table.
 
     Called from AppState.add_audit_entry() so every code path that
@@ -131,6 +131,7 @@ def persist_entry(entry: "AuditLogEntry") -> None:
 
 
 # ── Read ───────────────────────────────────────────────────────────────────────
+
 
 def load_entries(
     event_type: str | None = None,

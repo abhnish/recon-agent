@@ -33,6 +33,7 @@ import statistics
 import time
 from pathlib import Path
 
+from app.services.classification import ReconStatus, classify
 from app.services.matching import (
     MatchingConfig,
     MatchResult,
@@ -48,7 +49,6 @@ from app.services.normalisation import (
     normalise_order,
     normalise_settlement,
 )
-from app.services.classification import classify, ReconStatus
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
@@ -68,8 +68,8 @@ FAILED_PAYMENT_IDS = {f"ORD{2024_000 + i:06d}" for i in range(52, 55)}
 # Using these provisional thresholds only to produce a confusion matrix here;
 # they are not baked into the matching engine itself.
 
-HIGH_SCORE_THRESHOLD = 0.70    # likely CLEAN_MATCH
-MID_SCORE_THRESHOLD = 0.35     # likely HARD_MISMATCH; below → likely EXCEPTION
+HIGH_SCORE_THRESHOLD = 0.70  # likely CLEAN_MATCH
+MID_SCORE_THRESHOLD = 0.35  # likely HARD_MISMATCH; below → likely EXCEPTION
 
 
 def _load_csv(path: Path) -> list[dict]:
@@ -116,7 +116,13 @@ def run_validation() -> None:
     for order in orders:
         t0 = time.perf_counter()
         result = match_order(
-            order, settlements, bank_txns, utr_index, order_id_index, bank_utr_index, cfg
+            order,
+            settlements,
+            bank_txns,
+            utr_index,
+            order_id_index,
+            bank_utr_index,
+            cfg,
         )
         elapsed_ms = (time.perf_counter() - t0) * 1000
         per_order_times_ms.append(elapsed_ms)
@@ -137,28 +143,45 @@ def run_validation() -> None:
     #   MISMATCH: MID_SCORE_THRESHOLD ≤ score < HIGH_SCORE_THRESHOLD (matched but imperfect)
     #   FAILED_PAYMENT: score < MID_SCORE_THRESHOLD (no viable match)
 
-    clean_results = [result_by_order[oid] for oid in CLEAN_ORDER_IDS if oid in result_by_order]
-    mismatch_results = [result_by_order[oid] for oid in MISMATCH_ORDER_IDS if oid in result_by_order]
-    failed_results = [result_by_order[oid] for oid in FAILED_PAYMENT_IDS if oid in result_by_order]
+    clean_results = [
+        result_by_order[oid] for oid in CLEAN_ORDER_IDS if oid in result_by_order
+    ]
+    mismatch_results = [
+        result_by_order[oid] for oid in MISMATCH_ORDER_IDS if oid in result_by_order
+    ]
+    failed_results = [
+        result_by_order[oid] for oid in FAILED_PAYMENT_IDS if oid in result_by_order
+    ]
 
     # True positives for each category (how many were correctly banded)
-    clean_tp = sum(1 for r in clean_results if r.composite_score >= HIGH_SCORE_THRESHOLD)
-    mismatch_tp = sum(1 for r in mismatch_results if MID_SCORE_THRESHOLD <= r.composite_score < HIGH_SCORE_THRESHOLD)
-    failed_tp = sum(1 for r in failed_results if r.composite_score < MID_SCORE_THRESHOLD)
+    clean_tp = sum(
+        1 for r in clean_results if r.composite_score >= HIGH_SCORE_THRESHOLD
+    )
+    mismatch_tp = sum(
+        1
+        for r in mismatch_results
+        if MID_SCORE_THRESHOLD <= r.composite_score < HIGH_SCORE_THRESHOLD
+    )
+    failed_tp = sum(
+        1 for r in failed_results if r.composite_score < MID_SCORE_THRESHOLD
+    )
     len(phantom_credits)  # all 3 expected; validate below
     len(duplicate_settlements)  # all 3 expected
 
     # False positives: items in the wrong band
     clean_fp = sum(
-        1 for r in mismatch_results + failed_results
+        1
+        for r in mismatch_results + failed_results
         if r.composite_score >= HIGH_SCORE_THRESHOLD
     )
     mismatch_fp = sum(
-        1 for r in clean_results + failed_results
+        1
+        for r in clean_results + failed_results
         if MID_SCORE_THRESHOLD <= r.composite_score < HIGH_SCORE_THRESHOLD
     )
     failed_fp = sum(
-        1 for r in clean_results + mismatch_results
+        1
+        for r in clean_results + mismatch_results
         if r.composite_score < MID_SCORE_THRESHOLD
     )
 
@@ -180,9 +203,15 @@ def run_validation() -> None:
     print("ReconAgent — Matching Engine Validation Report")
     _print_separator("═")
     print("Dataset:  backend/data/  (seed=42, reproducible)")
-    print(f"Config:   MatchingConfig defaults — weights {cfg.amount_weight}/{cfg.reference_weight}/{cfg.date_weight}")
-    print(f"          amount tolerance ₹{cfg.amount_full_score_tolerance}–₹{cfg.amount_zero_score_tolerance}")
-    print(f"          date window {cfg.date_full_score_days}–{cfg.date_zero_score_days} days")
+    print(
+        f"Config:   MatchingConfig defaults — weights {cfg.amount_weight}/{cfg.reference_weight}/{cfg.date_weight}"
+    )
+    print(
+        f"          amount tolerance ₹{cfg.amount_full_score_tolerance}–₹{cfg.amount_zero_score_tolerance}"
+    )
+    print(
+        f"          date window {cfg.date_full_score_days}–{cfg.date_zero_score_days} days"
+    )
     print(f"          UTR fuzzy threshold {cfg.fuzzy_utr_threshold}")
     print()
 
@@ -202,7 +231,9 @@ def run_validation() -> None:
     _print_separator()
     print("SCORE BREAKDOWN BY GROUND TRUTH CATEGORY")
     _print_separator()
-    print(f"{'Category':<22} {'N':>4}  {'Min':>6}  {'Mean':>6}  {'Max':>6}  {'Stdev':>6}")
+    print(
+        f"{'Category':<22} {'N':>4}  {'Min':>6}  {'Mean':>6}  {'Max':>6}  {'Stdev':>6}"
+    )
     _print_separator()
 
     def stats_row(label: str, result_list: list[MatchResult]) -> None:
@@ -231,7 +262,11 @@ def run_validation() -> None:
 
     def cm_row(label: str, result_list: list[MatchResult]) -> None:
         hi = sum(1 for r in result_list if r.composite_score >= HIGH_SCORE_THRESHOLD)
-        mid = sum(1 for r in result_list if MID_SCORE_THRESHOLD <= r.composite_score < HIGH_SCORE_THRESHOLD)
+        mid = sum(
+            1
+            for r in result_list
+            if MID_SCORE_THRESHOLD <= r.composite_score < HIGH_SCORE_THRESHOLD
+        )
         lo = sum(1 for r in result_list if r.composite_score < MID_SCORE_THRESHOLD)
         print(f"  {label:<20}  {hi:>12}  {mid:>14}  {lo:>10}")
 
@@ -244,9 +279,13 @@ def run_validation() -> None:
     _print_separator()
     print("SECTION A — SCORE-BAND PRECISION / RECALL  (intermediate layer only)")
     print("  ⚠  These use raw composite score bands (HIGH/MID/LOW), NOT classify().")
-    print("  ⚠  They do NOT reflect anomaly-flag overrides. See Section B for final numbers.")
+    print(
+        "  ⚠  They do NOT reflect anomaly-flag overrides. See Section B for final numbers."
+    )
     _print_separator()
-    print(f"{'Category':<22}  {'TP':>4}  {'FP':>4}  {'Precision':>10}  {'Recall':>8}  {'F1':>8}")
+    print(
+        f"{'Category':<22}  {'TP':>4}  {'FP':>4}  {'Precision':>10}  {'Recall':>8}  {'F1':>8}"
+    )
     _print_separator()
 
     def f1(p: float, r: float) -> float:
@@ -274,7 +313,9 @@ def run_validation() -> None:
     for b in phantom_credits:
         print(f"    UTR={b.utr_reference[:30]}  amount=₹{b.credit_amount}")
     print()
-    print(f"  Duplicate settlements detected : {len(duplicate_settlements)} order(s) (expected 3)")
+    print(
+        f"  Duplicate settlements detected : {len(duplicate_settlements)} order(s) (expected 3)"
+    )
     for oid in duplicate_settlements:
         print(f"    ORD={oid}")
     print()
@@ -292,8 +333,10 @@ def run_validation() -> None:
     print(f"  Avg per order      : {total_ms / n:.3f} ms")
     print(f"  p50 latency        : {p50:.3f} ms")
     print(f"  p99 latency        : {p99:.3f} ms")
-    print(f"  Throughput         : {n / (total_ms / 1000):.0f} orders/sec  "
-          f"(extrapolated; index build not included)")
+    print(
+        f"  Throughput         : {n / (total_ms / 1000):.0f} orders/sec  "
+        f"(extrapolated; index build not included)"
+    )
     print()
 
     # ── Per-order detail (mismatch and exception rows) ─────────────────────────
@@ -331,7 +374,9 @@ def run_validation() -> None:
     _print_separator("=")
     print("SECTION B — END-TO-END PIPELINE PRECISION / RECALL  (this is what matters)")
     print("  Calls classify() on every MatchResult, including anomaly-flag overrides.")
-    print("  AUTO_MATCHED ≃ CLEAN_MATCH, NEEDS_REVIEW ≃ HARD_MISMATCH, UNRESOLVED ≃ FAILED")
+    print(
+        "  AUTO_MATCHED ≃ CLEAN_MATCH, NEEDS_REVIEW ≃ HARD_MISMATCH, UNRESOLVED ≃ FAILED"
+    )
     _print_separator("=")
     print()
 
@@ -352,36 +397,42 @@ def run_validation() -> None:
     _print_separator()
     print("CONFUSION MATRIX  (rows=ground truth, cols=classify() status)")
     _print_separator()
-    print(f"{'Ground Truth':<22}  {'AUTO_MATCHED':>12}  {'NEEDS_REVIEW':>12}  {'UNRESOLVED':>10}")
+    print(
+        f"{'Ground Truth':<22}  {'AUTO_MATCHED':>12}  {'NEEDS_REVIEW':>12}  {'UNRESOLVED':>10}"
+    )
     _print_separator()
 
     def b2_cm_row(label: str, gt_ids: set[str]) -> None:
-        am  = sum(1 for oid in gt_ids if oid in auto_set)
-        nr  = sum(1 for oid in gt_ids if oid in review_set)
-        un  = sum(1 for oid in gt_ids if oid in unresolved_set)
+        am = sum(1 for oid in gt_ids if oid in auto_set)
+        nr = sum(1 for oid in gt_ids if oid in review_set)
+        un = sum(1 for oid in gt_ids if oid in unresolved_set)
         print(f"  {label:<20}  {am:>12}  {nr:>12}  {un:>10}")
 
-    b2_cm_row("CLEAN_MATCH (42)",    CLEAN_ORDER_IDS)
-    b2_cm_row("HARD_MISMATCH (9)",   MISMATCH_ORDER_IDS)
-    b2_cm_row("FAILED_PAYMENT (3)",  FAILED_PAYMENT_IDS)
+    b2_cm_row("CLEAN_MATCH (42)", CLEAN_ORDER_IDS)
+    b2_cm_row("HARD_MISMATCH (9)", MISMATCH_ORDER_IDS)
+    b2_cm_row("FAILED_PAYMENT (3)", FAILED_PAYMENT_IDS)
     print()
 
     # Precision / recall
     _print_separator()
     print("PRECISION / RECALL  (end-to-end classify() output)")
     _print_separator()
-    print(f"{'Category':<22}  {'TP':>4}  {'FP':>4}  {'Precision':>10}  {'Recall':>8}  {'F1':>8}")
+    print(
+        f"{'Category':<22}  {'TP':>4}  {'FP':>4}  {'Precision':>10}  {'Recall':>8}  {'F1':>8}"
+    )
     _print_separator()
 
     # AUTO_MATCHED: TP = clean orders that are AUTO_MATCHED
     b2_clean_tp = len(CLEAN_ORDER_IDS & auto_set)
-    b2_clean_fp = len(auto_set - CLEAN_ORDER_IDS)   # non-clean orders auto-matched
+    b2_clean_fp = len(auto_set - CLEAN_ORDER_IDS)  # non-clean orders auto-matched
     b2_clean_pr = safe_div(b2_clean_tp, b2_clean_tp + b2_clean_fp)
     b2_clean_rc = safe_div(b2_clean_tp, len(CLEAN_ORDER_IDS))
 
     # NEEDS_REVIEW: TP = hard-mismatch orders in NEEDS_REVIEW
     b2_mm_tp = len(MISMATCH_ORDER_IDS & review_set)
-    b2_mm_fp = len(review_set - MISMATCH_ORDER_IDS - FAILED_PAYMENT_IDS)  # clean orders flagged
+    b2_mm_fp = len(
+        review_set - MISMATCH_ORDER_IDS - FAILED_PAYMENT_IDS
+    )  # clean orders flagged
     b2_mm_pr = safe_div(b2_mm_tp, b2_mm_tp + b2_mm_fp)
     b2_mm_rc = safe_div(b2_mm_tp, len(MISMATCH_ORDER_IDS))
 
@@ -408,22 +459,33 @@ def run_validation() -> None:
     # Per-order anomaly detail for hard-mismatch cases
     _print_separator()
     print("PER-CASE ANOMALY FLAGS  (hard-mismatch cases only)")
-    print("  'composite alone' = score < 0.97, routes to NEEDS_REVIEW without anomaly override")
+    print(
+        "  'composite alone' = score < 0.97, routes to NEEDS_REVIEW without anomaly override"
+    )
     print("  'anomaly override' = score ≥ 0.97, anomaly flag triggers downgrade")
     _print_separator()
-    print(f"  {'order_id':<14}  {'score':>7}  {'status':<14}  {'caught_by':<18}  anomaly_flags")
+    print(
+        f"  {'order_id':<14}  {'score':>7}  {'status':<14}  {'caught_by':<18}  anomaly_flags"
+    )
     _print_separator()
 
     from app.services.classification import ClassificationConfig
+
     cls_cfg = ClassificationConfig()
 
     for r in results:
         if r.order_id not in MISMATCH_ORDER_IDS:
             continue
         cr = classify(r)
-        caught = "anomaly override" if r.composite_score >= cls_cfg.auto_match_threshold else "composite alone"
+        caught = (
+            "anomaly override"
+            if r.composite_score >= cls_cfg.auto_match_threshold
+            else "composite alone"
+        )
         flags = ", ".join(cr.anomaly_flags) if cr.anomaly_flags else "(none)"
-        print(f"  {r.order_id:<14}  {r.composite_score:>7.4f}  {cr.status.value:<14}  {caught:<18}  {flags}")
+        print(
+            f"  {r.order_id:<14}  {r.composite_score:>7.4f}  {cr.status.value:<14}  {caught:<18}  {flags}"
+        )
     print()
 
     _print_separator("=")

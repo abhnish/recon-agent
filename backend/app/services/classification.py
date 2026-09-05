@@ -151,9 +151,7 @@ class ClassificationConfig:
     unresolved_threshold: float = 0.10
 
     # Secondary anomaly thresholds (can trigger downgrade from AUTO_MATCHED)
-    anomaly_amount_diff_inr: Decimal = field(
-        default_factory=lambda: Decimal("0.50")
-    )
+    anomaly_amount_diff_inr: Decimal = field(default_factory=lambda: Decimal("0.50"))
     anomaly_date_delay_days: int = 5
 
     # Boundary between ROUNDING_DIFF and PARTIAL_REFUND sub-types
@@ -275,7 +273,10 @@ def _determine_subtype(
         return ExceptionSubtype.MISSING_BANK_CREDIT
 
     # Settlement is a refund (negative amount) but order is positive
-    if result.matched_settlement_id is not None and getattr(result, "settled_amount", Decimal("0")) < 0:
+    if (
+        result.matched_settlement_id is not None
+        and getattr(result, "settled_amount", Decimal(0)) < 0
+    ):
         return ExceptionSubtype.REFUND_MISMATCH
 
     # Large amount difference → partial refund
@@ -399,7 +400,7 @@ def classify_all(
         cr = classify(result, cfg)
 
         # Apply batch-level overrides in order of precedence
-        
+
         if result.order_id in ambiguous_order_ids:
             cr = ClassifiedResult(
                 match_result=result,

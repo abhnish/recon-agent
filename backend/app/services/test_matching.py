@@ -107,6 +107,7 @@ def _make_bank(
 ) -> NormalisedBankTxn:
     """Factory for a minimal NormalisedBankTxn."""
     from app.services.normalisation import extract_utrs_from_description
+
     canonical = canonicalise_utr(utr)
     return NormalisedBankTxn(
         txn_date=txn_date or date(2024, 7, 2),
@@ -119,6 +120,7 @@ def _make_bank(
 
 
 # ── Normalisation tests ────────────────────────────────────────────────────────
+
 
 class TestCanonicaliseUtr:
     def test_canonical_form_unchanged(self) -> None:
@@ -150,6 +152,7 @@ class TestCanonicaliseUtr:
 
 
 # ── Amount scoring tests ───────────────────────────────────────────────────────
+
 
 class TestScoreAmount:
     def test_exact_match_scores_one(self) -> None:
@@ -231,6 +234,7 @@ class TestScoreAmount:
 
 # ── Date scoring tests ─────────────────────────────────────────────────────────
 
+
 class TestScoreDate:
     def test_same_day_scores_one(self) -> None:
         score, days = _score_date(date(2024, 7, 1), date(2024, 7, 1), _CFG)
@@ -268,6 +272,7 @@ class TestScoreDate:
 
 # ── UTR fuzzy matching tests ───────────────────────────────────────────────────
 
+
 class TestBestUtrRatio:
     _CANONICAL = "UTR2024HDFCABC12345678"
 
@@ -293,31 +298,32 @@ class TestBestUtrRatio:
         rapidfuzz.partial_ratio scores 100 for a full prefix match,
         which is why we use partial_ratio over plain ratio.
         """
-        truncated = self._CANONICAL[:16]   # e.g. "UTR2024HDFCABC12"
+        truncated = self._CANONICAL[:16]  # e.g. "UTR2024HDFCABC12"
         ratio = _best_utr_ratio(self._CANONICAL, truncated, ())
-        assert ratio >= _CFG.fuzzy_utr_threshold, (
-            f"Truncated UTR ratio {ratio} below threshold {_CFG.fuzzy_utr_threshold}"
-        )
+        assert (
+            ratio >= _CFG.fuzzy_utr_threshold
+        ), f"Truncated UTR ratio {ratio} below threshold {_CFG.fuzzy_utr_threshold}"
 
     def test_unrelated_utr_scores_low(self) -> None:
         """A completely unrelated UTR should score below threshold."""
         unrelated = "UTR2024SBINZZZZ99999999"
         ratio = _best_utr_ratio(self._CANONICAL, unrelated, ())
         # Should be well below 60 for clearly different UTRs
-        assert ratio < _CFG.fuzzy_utr_threshold, (
-            f"Unrelated UTR ratio {ratio} unexpectedly above threshold"
-        )
+        assert (
+            ratio < _CFG.fuzzy_utr_threshold
+        ), f"Unrelated UTR ratio {ratio} unexpectedly above threshold"
 
     def test_extracted_utr_from_description_used_as_fallback(self) -> None:
         """If bank utr_reference is truncated but description contains full UTR,
         extracted_utrs should lift the score to match threshold."""
-        truncated_ref = self._CANONICAL[:12]   # very short truncation
+        truncated_ref = self._CANONICAL[:12]  # very short truncation
         full_in_description = (self._CANONICAL,)  # extracted from description
         ratio = _best_utr_ratio(self._CANONICAL, truncated_ref, full_in_description)
         assert ratio == 100.0, "Exact match via extracted UTR should score 100"
 
 
 # ── Full pair scoring tests ────────────────────────────────────────────────────
+
 
 class TestScorePair:
     def test_clean_match_scores_high(self) -> None:
@@ -358,9 +364,9 @@ class TestScorePair:
         score, breakdown = score_pair(order, settlement, bank, _CFG)
         # Amount score should be 0 (huge diff), but reference+date should salvage some
         assert breakdown.amount_score == 0.0
-        assert 0.20 <= score <= 0.75, (
-            f"Partial refund score {score:.4f} out of expected range [0.20, 0.75]"
-        )
+        assert (
+            0.20 <= score <= 0.75
+        ), f"Partial refund score {score:.4f} out of expected range [0.20, 0.75]"
 
     def test_no_bank_link_reduces_reference_score(self) -> None:
         """When bank=None, reference_score should be 0 and composite is lower."""
@@ -399,7 +405,9 @@ class TestScorePair:
         """
         order = _make_order(amount="10000.00")
         settlement = _make_settlement(
-            settled_amount="9764.00", fee="200.00", tax_on_fee="36.00",
+            settled_amount="9764.00",
+            fee="200.00",
+            tax_on_fee="36.00",
             utr="UTR2024HDFCABC12345678",
         )
         unrelated_bank = _make_bank(
@@ -409,17 +417,21 @@ class TestScorePair:
         )
         score, breakdown = score_pair(order, settlement, unrelated_bank, _CFG)
         # Reference score must be 0.0 — UTR is unrelated, amount differs
-        assert breakdown.reference_score == 0.0, (
-            f"Unrelated bank link should have reference_score=0.0, got {breakdown.reference_score}"
-        )
+        assert (
+            breakdown.reference_score == 0.0
+        ), f"Unrelated bank link should have reference_score=0.0, got {breakdown.reference_score}"
         assert breakdown.bank_utr_score == 0.0
         assert breakdown.bank_amount_score == 0.0
         # Composite should equal amount_weight + date_weight contributions only
-        expected = _CFG.amount_weight * breakdown.amount_score + _CFG.date_weight * breakdown.date_score
+        expected = (
+            _CFG.amount_weight * breakdown.amount_score
+            + _CFG.date_weight * breakdown.date_score
+        )
         assert abs(score - expected) < 1e-9, f"Expected {expected:.4f}, got {score:.4f}"
 
 
 # ── Match order tests ──────────────────────────────────────────────────────────
+
 
 class TestMatchOrder:
     def test_clean_order_returns_high_score(self) -> None:
@@ -432,7 +444,9 @@ class TestMatchOrder:
         oid_idx = _build_order_id_index([settlement])
         bank_idx = _build_bank_utr_index([bank])
 
-        result = match_order(order, [settlement], [bank], utr_idx, oid_idx, bank_idx, _CFG)
+        result = match_order(
+            order, [settlement], [bank], utr_idx, oid_idx, bank_idx, _CFG
+        )
         assert result.matched_settlement_id == "SETL001"
         assert result.composite_score >= 0.85
 
@@ -446,7 +460,9 @@ class TestMatchOrder:
         oid_idx = _build_order_id_index([settlement])
         bank_idx = _build_bank_utr_index([bank])
 
-        result = match_order(order, [settlement], [bank], utr_idx, oid_idx, bank_idx, _CFG)
+        result = match_order(
+            order, [settlement], [bank], utr_idx, oid_idx, bank_idx, _CFG
+        )
         assert result.composite_score == 0.0
         assert result.matched_settlement_id is None
 
@@ -454,35 +470,42 @@ class TestMatchOrder:
         """When two settlements exist, the one linked to the order is chosen."""
         order = _make_order(order_id="ORD001", amount="10000.00")
         correct = _make_settlement(settlement_id="SETL001", order_id="ORD001")
-        wrong = _make_settlement(settlement_id="SETL002", order_id="ORD002",
-                                  utr="UTR2024SBINXXX99999999")
+        wrong = _make_settlement(
+            settlement_id="SETL002", order_id="ORD002", utr="UTR2024SBINXXX99999999"
+        )
         bank = _make_bank()
 
         utr_idx = _build_settlement_index([correct, wrong])
         oid_idx = _build_order_id_index([correct, wrong])
         bank_idx = _build_bank_utr_index([bank])
 
-        result = match_order(order, [correct, wrong], [bank], utr_idx, oid_idx, bank_idx, _CFG)
+        result = match_order(
+            order, [correct, wrong], [bank], utr_idx, oid_idx, bank_idx, _CFG
+        )
         assert result.matched_settlement_id == "SETL001"
 
 
 # ── Exception detection tests ──────────────────────────────────────────────────
 
+
 class TestDetectDuplicateSettlements:
     def test_single_settlement_per_order_no_duplicates(self) -> None:
         s1 = _make_settlement(settlement_id="SETL001", order_id="ORD001")
-        s2 = _make_settlement(settlement_id="SETL002", order_id="ORD002",
-                               utr="UTR2024SBINXXX99999999")
-        assert detect_duplicate_settlements([s1, s2]) == {}
+        s2 = _make_settlement(
+            settlement_id="SETL002", order_id="ORD002", utr="UTR2024SBINXXX99999999"
+        )
+        assert detect_duplicate_settlements([s1, s2]) == set()
 
     def test_two_settlements_same_order_detected(self) -> None:
-        s1 = _make_settlement(settlement_id="SETL001", order_id="ORD001",
-                               utr="UTR2024HDFCABC12345678")
-        s2 = _make_settlement(settlement_id="SETL002", order_id="ORD001",
-                               utr="UTR2024HDFCABC99999999")
+        s1 = _make_settlement(
+            settlement_id="SETL001", order_id="ORD001", utr="UTR2024HDFCABC12345678"
+        )
+        s2 = _make_settlement(
+            settlement_id="SETL002", order_id="ORD001", utr="UTR2024HDFCABC99999999"
+        )
         result = detect_duplicate_settlements([s1, s2])
         assert "ORD001" in result
-        assert len(result["ORD001"]) == 2
+        assert len(result) == 1
 
 
 class TestDetectPhantomCredits:
@@ -505,6 +528,7 @@ class TestDetectPhantomCredits:
 
 # ── Integration test against synthetic dataset ────────────────────────────────
 
+
 class TestIntegrationSyntheticDataset:
     """Integration tests against backend/data/ CSVs (seed=42).
 
@@ -516,7 +540,9 @@ class TestIntegrationSyntheticDataset:
     def dataset(self):
         """Load CSVs and run matching once for the whole class."""
         if not DATA_DIR.exists():
-            pytest.skip("Synthetic data CSVs not found — run generate_synthetic_data.py first")
+            pytest.skip(
+                "Synthetic data CSVs not found — run generate_synthetic_data.py first"
+            )
 
         def load(name: str) -> list[dict]:
             with open(DATA_DIR / name, newline="", encoding="utf-8") as f:
@@ -549,9 +575,9 @@ class TestIntegrationSyntheticDataset:
             for oid in CLEAN_ORDER_IDS
             if oid in by_order and by_order[oid].composite_score < 0.70
         ]
-        assert not failures, (
-            f"{len(failures)} clean orders scored below 0.70: {failures}"
-        )
+        assert (
+            not failures
+        ), f"{len(failures)} clean orders scored below 0.70: {failures}"
 
     def test_failed_payments_score_below_0_35(self, dataset) -> None:
         """Orders with no settlement should score < 0.35."""
@@ -561,9 +587,9 @@ class TestIntegrationSyntheticDataset:
             for oid in FAILED_PAYMENT_IDS
             if oid in by_order and by_order[oid].composite_score >= 0.35
         ]
-        assert not failures, (
-            f"{len(failures)} failed-payment orders scored ≥ 0.35: {failures}"
-        )
+        assert (
+            not failures
+        ), f"{len(failures)} failed-payment orders scored ≥ 0.35: {failures}"
 
     def test_clean_precision_above_0_90(self, dataset) -> None:
         """Score-band precision: all clean matches score in HIGH band (≥ 0.70).
@@ -586,12 +612,13 @@ class TestIntegrationSyntheticDataset:
 
         # All clean matches must be in the high band (recall = 1.0)
         clean_in_high = sum(
-            1 for oid in CLEAN_ORDER_IDS
+            1
+            for oid in CLEAN_ORDER_IDS
             if oid in by_order and by_order[oid].composite_score >= 0.70
         )
-        assert clean_in_high == len(CLEAN_ORDER_IDS), (
-            f"Only {clean_in_high}/{len(CLEAN_ORDER_IDS)} clean orders in HIGH band"
-        )
+        assert clean_in_high == len(
+            CLEAN_ORDER_IDS
+        ), f"Only {clean_in_high}/{len(CLEAN_ORDER_IDS)} clean orders in HIGH band"
 
         # Precision ≥ 0.85 at the score level (classification layer refines this)
         assert precision >= 0.85, (
@@ -603,34 +630,36 @@ class TestIntegrationSyntheticDataset:
         """All 3 failed-payment orders must be detected (recall=1.0)."""
         by_order = dataset["by_order"]
         detected = sum(
-            1 for oid in FAILED_PAYMENT_IDS
+            1
+            for oid in FAILED_PAYMENT_IDS
             if oid in by_order and by_order[oid].composite_score < 0.35
         )
-        assert detected == len(FAILED_PAYMENT_IDS), (
-            f"Only {detected}/{len(FAILED_PAYMENT_IDS)} failed-payment orders detected"
-        )
+        assert detected == len(
+            FAILED_PAYMENT_IDS
+        ), f"Only {detected}/{len(FAILED_PAYMENT_IDS)} failed-payment orders detected"
 
     def test_phantom_credits_all_detected(self, dataset) -> None:
         """All 3 phantom bank credits must be detected."""
-        assert len(dataset["phantom"]) == 3, (
-            f"Expected 3 phantom credits, detected {len(dataset['phantom'])}"
-        )
+        assert (
+            len(dataset["phantom"]) == 3
+        ), f"Expected 3 phantom credits, detected {len(dataset['phantom'])}"
 
     def test_duplicate_settlements_all_detected(self, dataset) -> None:
         """All 3 duplicate-settlement order_ids must be flagged."""
-        assert len(dataset["dupes"]) == 3, (
-            f"Expected 3 duplicate settlement order_ids, found {len(dataset['dupes'])}"
-        )
+        assert (
+            len(dataset["dupes"]) == 3
+        ), f"Expected 3 duplicate settlement order_ids, found {len(dataset['dupes'])}"
 
     def test_matching_completes_under_one_second(self, dataset) -> None:
         """Full matching run (54 orders) must complete in under 1 second."""
-        assert dataset["elapsed"] < 1.0, (
-            f"Matching took {dataset['elapsed']:.3f}s — expected < 1.0s"
-        )
+        assert (
+            dataset["elapsed"] < 1.0
+        ), f"Matching took {dataset['elapsed']:.3f}s — expected < 1.0s"
 
     def test_score_breakdown_json_serialisable(self, dataset) -> None:
         """Every result's score_breakdown must serialise to valid JSON."""
         import json
+
         for r in dataset["results"]:
             payload = r.score_breakdown_json()
             parsed = json.loads(payload)

@@ -54,7 +54,7 @@ refund_settlement = {
     "settlement_id": "SETL-002",
     "order_id": "DEMO-002",
     "settled_date": "2024-03-02",
-    "settled_amount": "3902.40", # 4000 gross - fee (80) - tax (17.6)
+    "settled_amount": "3902.40",  # 4000 gross - fee (80) - tax (17.6)
     "fee": "80.00",
     "tax_on_fee": "17.60",
     "utr_number": "UTR2024ICIC002",
@@ -94,7 +94,7 @@ ambig_settlement_1 = {
     "settled_amount": "781.12",
     "fee": "16.00",
     "tax_on_fee": "2.88",
-    "utr_number": "UTR2024SBIN004", # Same UTR!
+    "utr_number": "UTR2024SBIN004",  # Same UTR!
 }
 ambig_order_2 = {
     "order_id": "DEMO-004B",
@@ -110,7 +110,7 @@ ambig_settlement_2 = {
     "settled_amount": "781.12",
     "fee": "16.00",
     "tax_on_fee": "2.88",
-    "utr_number": "UTR2024SBIN004", # Same UTR!
+    "utr_number": "UTR2024SBIN004",  # Same UTR!
 }
 ambig_bank = {
     "txn_date": "2024-03-02",
@@ -136,23 +136,36 @@ def generate() -> None:
     write_csv(
         "order_ledger.csv",
         ["order_id", "order_date", "customer_name", "amount", "currency"],
-        orders
+        orders,
     )
 
-    settlements = [clean_settlement, refund_settlement, ambig_settlement_1, ambig_settlement_2]
+    settlements = [
+        clean_settlement,
+        refund_settlement,
+        ambig_settlement_1,
+        ambig_settlement_2,
+    ]
     write_csv(
         "settlement_report.csv",
-        ["settlement_id", "order_id", "settled_date", "settled_amount", "fee", "tax_on_fee", "utr_number"],
-        settlements
+        [
+            "settlement_id",
+            "order_id",
+            "settled_date",
+            "settled_amount",
+            "fee",
+            "tax_on_fee",
+            "utr_number",
+        ],
+        settlements,
     )
 
     bank_txns = [clean_bank, refund_bank, ambig_bank]
     write_csv(
         "bank_statement.csv",
         ["txn_date", "description", "credit_amount", "utr_reference"],
-        bank_txns
+        bank_txns,
     )
-    
+
     print("\nDemo dataset generation complete!")
     print("Run `pytest` to ensure nothing is broken, then proceed to run the server.")
 
