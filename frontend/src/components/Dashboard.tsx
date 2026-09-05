@@ -46,16 +46,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ metrics, onRunReconciliati
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Match Rate" value={`${metrics.match_rate_pct}%`} icon={<CheckCircle className="w-5 h-5 text-status-match" />} />
-        <MetricCard title="Auto-Matched Value" value={formatCurrency(metrics.value_auto_matched)} icon={<CheckCircle className="w-5 h-5 text-status-match" />} />
-        <MetricCard title="Value in Exceptions" value={formatCurrency(metrics.value_in_exceptions)} icon={<AlertTriangle className="w-5 h-5 text-status-review" />} />
-        <MetricCard title="Avg Processing Time" value={`${metrics.avg_runtime_ms} ms`} icon={<Clock className="w-5 h-5 text-text-muted" />} />
+        <MetricCard title="Match Rate" value={`${metrics.match_rate_pct}%`} icon={<CheckCircle className="w-6 h-6" />} />
+        <MetricCard title="Auto-Matched Value" value={formatCurrency(metrics.value_auto_matched)} icon={<CheckCircle className="w-6 h-6" />} />
+        <MetricCard title="Value in Exceptions" value={formatCurrency(metrics.value_in_exceptions)} icon={<AlertTriangle className="w-6 h-6" />} />
+        <MetricCard title="Avg Processing Time" value={`${metrics.avg_runtime_ms} ms`} icon={<Clock className="w-6 h-6" />} />
       </div>
 
-      <div className="bg-white p-6 rounded-lg border border-border shadow-sm space-y-4">
-        <h2 className="text-lg font-medium text-text">Status Breakdown</h2>
+      <div className="bg-white p-8 rounded-xl border border-slate-200/60 shadow-sm space-y-5">
+        <h2 className="text-lg font-semibold text-text">Status Breakdown</h2>
         
-        <div className="w-full h-8 flex rounded-md overflow-hidden bg-slate-100">
+        <div className="w-full h-10 flex rounded-lg overflow-hidden bg-slate-100 shadow-inner">
           {metrics.total_processed > 0 && (
             <>
               <div style={{ width: `${(metrics.auto_matched / metrics.total_processed) * 100}%` }} className="bg-status-match h-full" title={`Auto Matched: ${metrics.auto_matched}`} />
@@ -76,12 +76,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ metrics, onRunReconciliati
 };
 
 const MetricCard = ({ title, value, icon }: { title: string, value: string, icon: React.ReactNode }) => (
-  <div className="bg-white p-6 rounded-lg border border-border shadow-sm flex items-center justify-between">
+  <div className="bg-white p-8 rounded-xl border border-slate-200/60 shadow-sm flex items-center justify-between transition-shadow hover:shadow-md">
     <div>
       <p className="text-sm font-medium text-text-muted">{title}</p>
-      <p className="text-2xl font-semibold text-text mt-1">{value}</p>
+      <p className="text-3xl font-semibold text-text mt-2">{value}</p>
     </div>
-    <div className="p-3 bg-slate-50 rounded-full">
+    <div className="p-3 bg-indigo-50/50 rounded-full text-primary">
       {icon}
     </div>
   </div>

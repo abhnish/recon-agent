@@ -5,6 +5,7 @@
 > cd backend && source ../.venv/bin/activate
 > python data/demo_seed.py
 > ```
+> **Measured real-world constraint:** The Gemini free tier allows 5 requests/minute for gemini-2.5-flash. The demo relies on cache pre-warming at server startup specifically to work within this limit.
 
 ## 0:00 - 0:10 | The Problem
 "Payment reconciliation is spreadsheet hell. Today, finance teams at Razorpay merchants manually match order ledgers against settlement reports and bank statements. It's slow, error-prone, and scales terribly. Let's look at how ReconAgent solves this."
@@ -23,6 +24,7 @@
 3. **Click 'Generate Explanation'.**
 4. "ReconAgent uses Gemini 2.5 Flash to translate the deterministic numerical diff into plain language. It explains exactly what happened: a partial refund where the settlement is less than the order amount. It tells the operator exactly how to resolve it."
 5. *(Optional: Ask the Chat Assistant a follow-up question, like "Why did DEMO-002 fail?")*
+> **Presenter note:** if asked live to explain an exception NOT in the pre-warmed demo_seed set, expect a possible fallback response due to free-tier rate limits — this is a known, documented constraint, not a bug.
 
 ## 1:40 - 2:10 | The Honest Exception (Failed Payment)
 *(Still in Exceptions Queue)*

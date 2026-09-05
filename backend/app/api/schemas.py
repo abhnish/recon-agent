@@ -38,7 +38,7 @@ class ApiResponse(BaseModel):
 
     ok: bool = True
     data: Any = None
-    error: str | None = None
+    error: Optional[str] = None
 
 
 # ── Reconcile ─────────────────────────────────────────────────────────────────
@@ -98,7 +98,7 @@ class MetricsResponse(BaseModel):
     value_auto_matched: float
     value_in_exceptions: float
     avg_runtime_ms: float
-    last_run_id: int | None
+    last_run_id: Optional[int]
 
 
 # ── Transactions ──────────────────────────────────────────────────────────────
@@ -148,11 +148,11 @@ class TransactionSchema(BaseModel):
     composite_score: float
     anomaly_flags: list[str]
     order_amount: float
-    settled_amount: float | None
-    fee: float | None
-    matched_settlement_id: str | None
-    order_date: str | None
-    settled_date: str | None
+    settled_amount: Optional[float]
+    fee: Optional[float]
+    matched_settlement_id: Optional[str]
+    order_date: Optional[str]
+    settled_date: Optional[str]
     score_breakdown: ScoreBreakdownSchema
 
 
@@ -305,7 +305,7 @@ class AuditLogEntrySchema(BaseModel):
     """
 
     event_type: str
-    order_id: str | None
+    order_id: Optional[str]
     model_name: str
     prompt_summary: str
     response_text: str

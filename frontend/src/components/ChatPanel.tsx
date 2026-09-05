@@ -54,24 +54,24 @@ export const ChatPanel: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] bg-white rounded-lg border border-border shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-border bg-slate-50 flex justify-between items-center">
+      <div className="p-4 border-b border-border bg-white flex justify-between items-center">
         <h2 className="font-semibold text-text">Reconciliation Q&A</h2>
-        <span className="text-xs bg-slate-200 text-text-muted px-2 py-1 rounded-full">Gemini 2.5 Flash</span>
+        <span className="text-[10px] bg-slate-100 border border-border font-medium text-text-muted px-2 py-1 rounded-full uppercase tracking-wider">Gemini 2.5 Flash</span>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background/50">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex max-w-[80%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-primary text-white ml-3' : 'bg-blue-100 text-blue-700 mr-3'}`}>
-                {msg.role === 'user' ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-primary text-white ml-3' : 'bg-indigo-100 text-indigo-700 mr-3'}`}>
+                {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
               </div>
-              <div className={`p-3 rounded-lg ${
+              <div className={`p-4 rounded-2xl ${
                   msg.role === 'user' 
-                    ? 'bg-primary text-white rounded-tr-none' 
+                    ? 'bg-primary text-white rounded-tr-sm shadow-sm' 
                     : msg.isError 
-                      ? 'bg-red-50 text-red-800 border border-red-200 rounded-tl-none'
-                      : 'bg-white border border-border shadow-sm rounded-tl-none'
+                      ? 'bg-status-unresolved-bg text-status-unresolved border border-status-unresolved/20 rounded-tl-sm'
+                      : 'bg-white border border-border shadow-sm rounded-tl-sm'
                 }`}>
                 <p className={`text-sm whitespace-pre-wrap ${msg.role === 'user' ? 'text-white' : 'text-text'}`}>
                   {msg.content}
@@ -96,13 +96,13 @@ export const ChatPanel: React.FC = () => {
         {loading && (
           <div className="flex justify-start">
             <div className="flex flex-row">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-700 mr-3 flex items-center justify-center">
-                <Bot className="w-5 h-5" />
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 mr-3 flex items-center justify-center">
+                <Bot className="w-4 h-4" />
               </div>
-              <div className="p-3 bg-white border border-border shadow-sm rounded-lg rounded-tl-none flex items-center space-x-2">
-                <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-slate-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="p-4 bg-white border border-border shadow-sm rounded-2xl rounded-tl-sm flex items-center space-x-2">
+                <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full animate-bounce"></div>
+                <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+                <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
               </div>
             </div>
           </div>
@@ -117,7 +117,7 @@ export const ChatPanel: React.FC = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about shortfalls, duplicates, or specific order IDs..."
-            className="flex-1 bg-slate-50 border border-border text-text text-sm rounded-full py-3 pl-4 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            className="flex-1 bg-white border border-border shadow-sm text-text text-sm rounded-full py-3 pl-5 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             disabled={loading}
           />
           <button 

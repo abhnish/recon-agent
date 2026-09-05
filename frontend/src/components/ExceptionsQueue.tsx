@@ -70,14 +70,14 @@ export const ExceptionsQueue: React.FC = () => {
     <div className="bg-white rounded-lg border border-border overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm text-text">
-          <thead className="bg-slate-50 border-b border-border text-text-muted font-medium">
+          <thead className="bg-white border-b border-border text-text-muted text-xs uppercase tracking-wider font-semibold">
             <tr>
-              <th className="px-4 py-3 w-10"></th>
-              <th className="px-4 py-3">Order ID</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Subtype</th>
-              <th className="px-4 py-3">Score</th>
-              <th className="px-4 py-3">Shortfall</th>
+              <th className="px-6 py-4 w-10"></th>
+              <th className="px-6 py-4">Order ID</th>
+              <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4">Subtype</th>
+              <th className="px-6 py-4">Score</th>
+              <th className="px-6 py-4 text-right">Shortfall</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -87,20 +87,20 @@ export const ExceptionsQueue: React.FC = () => {
                   className={`hover:bg-slate-50 cursor-pointer ${expandedRows.has(exc.order_id) ? 'bg-slate-50' : ''}`}
                   onClick={() => toggleRow(exc.order_id)}
                 >
-                  <td className="px-4 py-3 text-text-muted">
+                  <td className="px-6 py-4 text-text-muted">
                     {expandedRows.has(exc.order_id) ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                   </td>
-                  <td className="px-4 py-3 font-medium">{exc.order_id}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                  <td className="px-6 py-4 font-medium">{exc.order_id}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-1 text-[11px] uppercase tracking-wider rounded-full font-bold ${
                       exc.status === 'NEEDS_REVIEW' ? 'bg-status-review-bg text-status-review' : 'bg-status-unresolved-bg text-status-unresolved'
                     }`}>
-                      {exc.status}
+                      {exc.status.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-4 py-3">{exc.subtype}</td>
-                  <td className="px-4 py-3">{exc.composite_score.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-status-unresolved">{exc.shortfall < 0 ? exc.shortfall.toFixed(2) : '-'}</td>
+                  <td className="px-6 py-4">{exc.subtype}</td>
+                  <td className="px-6 py-4 font-mono text-xs">{exc.composite_score.toFixed(2)}</td>
+                  <td className="px-6 py-4 text-right font-medium text-status-unresolved">{exc.shortfall < 0 ? exc.shortfall.toFixed(2) : '-'}</td>
                 </tr>
                 
                 {expandedRows.has(exc.order_id) && (
@@ -109,29 +109,32 @@ export const ExceptionsQueue: React.FC = () => {
                       <div className="bg-slate-50 p-6 shadow-inner text-sm space-y-4">
                         
                         {/* Diff Table */}
-                        <div>
-                          <h4 className="font-semibold mb-2">Structured Diff</h4>
-                          <div className="bg-white rounded border border-border overflow-hidden">
-                            <table className="w-full text-left text-xs">
-                              <thead className="bg-slate-100">
-                                <tr>
-                                  <th className="px-3 py-2">Field</th>
-                                  <th className="px-3 py-2">Expected (Order)</th>
-                                  <th className="px-3 py-2">Actual (Bank/Gateway)</th>
-                                  <th className="px-3 py-2">Delta</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-border">
-                                {exc.entries.map((entry, idx) => (
-                                  <tr key={idx} className={entry.is_shortfall ? 'bg-red-50' : ''}>
-                                    <td className="px-3 py-2 font-medium">{entry.field}</td>
-                                    <td className="px-3 py-2">{String(entry.expected)}</td>
-                                    <td className="px-3 py-2">{entry.actual !== null ? String(entry.actual) : '-'}</td>
-                                    <td className="px-3 py-2 text-status-unresolved font-medium">{entry.delta !== null ? String(entry.delta) : '-'}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                        <div className="mb-6">
+                          <h4 className="font-semibold text-text mb-3">Structured Diff</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {exc.entries.map((entry, idx) => (
+                              <div key={idx} className={`p-4 rounded-lg border ${entry.is_shortfall && entry.delta !== null ? 'bg-status-unresolved-bg/50 border-status-unresolved/20' : 'bg-white border-border shadow-sm'}`}>
+                                <p className="text-[10px] text-text-muted mb-3 font-semibold uppercase tracking-wider">{entry.field}</p>
+                                <div className="flex justify-between items-end mt-2">
+                                  <div>
+                                    <p className="text-[10px] text-text-muted">Expected</p>
+                                    <p className="text-sm font-medium">{String(entry.expected)}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-[10px] text-text-muted">Actual</p>
+                                    <p className="text-sm font-medium">{entry.actual !== null ? String(entry.actual) : '-'}</p>
+                                  </div>
+                                </div>
+                                {entry.delta !== null && (
+                                  <div className="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center">
+                                    <span className="text-[10px] text-text-muted">Delta</span>
+                                    <span className={`text-xs font-semibold ${entry.is_shortfall ? 'text-status-unresolved' : 'text-text'}`}>
+                                      {String(entry.delta)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         </div>
 
@@ -155,27 +158,30 @@ export const ExceptionsQueue: React.FC = () => {
                           )}
 
                           {explanations[exc.order_id] && (
-                            <div className="bg-white p-4 rounded border border-blue-100 shadow-sm relative">
-                              <div className="absolute top-2 right-2 flex space-x-2">
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${explanations[exc.order_id].llm_status === 'ok' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                            <div className="bg-indigo-50/40 p-5 rounded-lg border border-indigo-100 shadow-sm relative">
+                              <div className="absolute top-4 right-4 flex space-x-2">
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${explanations[exc.order_id].llm_status === 'ok' ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
                                   {explanations[exc.order_id].llm_status}
                                 </span>
                                 {explanations[exc.order_id].potential_hallucination && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700" title="Possible hallucination detected">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-status-unresolved-bg text-status-unresolved font-medium" title="Possible hallucination detected">
                                     Flagged
                                   </span>
                                 )}
                               </div>
-                              <h4 className="font-semibold mb-1 flex items-center text-blue-900">
+                              <h4 className="font-semibold mb-3 flex items-center text-indigo-900">
+                                <AlertCircle className="w-4 h-4 mr-2 text-indigo-500" />
                                 AI Explanation
                               </h4>
-                              <p className="text-text leading-relaxed mt-2 whitespace-pre-wrap">
+                              <p className="text-slate-700 leading-relaxed text-sm whitespace-pre-wrap">
                                 {explanations[exc.order_id].explanation || "Fallback triggered. View raw diff above."}
                               </p>
                               
-                              <p className="text-[10px] text-text-muted mt-3">
-                                Hint: <span className="font-mono">{exc.resolution_hint}</span>
-                              </p>
+                              <div className="mt-4 pt-3 border-t border-indigo-100/50">
+                                <p className="text-[10px] text-indigo-400 font-medium uppercase tracking-wide">
+                                  Resolution Hint: <span className="font-mono bg-indigo-100/50 px-1 py-0.5 rounded text-indigo-600 ml-1">{exc.resolution_hint}</span>
+                                </p>
+                              </div>
                             </div>
                           )}
                         </div>

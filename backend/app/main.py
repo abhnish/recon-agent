@@ -21,6 +21,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -29,9 +32,14 @@ from app.api.chat import router as chat_router
 from app.api.exceptions import router as exceptions_router
 from app.api.metrics import router as metrics_router
 from app.api.middleware import RequestLoggingMiddleware
-from app.api.reconcile import router as reconcile_router
+from app.api.reconcile import router as reconcile_router, _load_csv, _DATA_DIR
 from app.api.transactions import router as transactions_router
 from app.services.audit_db import init_db
+from app.services.normalisation import normalise_order, normalise_settlement, normalise_bank_txn
+from app.services.matching import run_matching, detect_duplicate_settlements, detect_duplicate_orders, detect_ambiguous_bank_matches
+from app.services.classification import classify_all
+from app.services.exception_diff import build_exception_list
+from app.services.llm_layer import explain_exception
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 
@@ -48,6 +56,50 @@ logging.basicConfig(
 async def _lifespan(app: FastAPI):
     """Initialise resources at startup, clean up at shutdown."""
     init_db()   # create SQLite audit_log table if not exists
+
+    logger = logging.getLogger(__name__)
+    logger.info("Pre-warming LLM explain cache with demo dataset...")
+    try:
+        raw_orders = _load_csv(_DATA_DIR / "order_ledger.csv")
+        raw_settlements = _load_csv(_DATA_DIR / "settlement_report.csv")
+        raw_bank = _load_csv(_DATA_DIR / "bank_statement.csv")
+        
+        orders = [normalise_order(r) for r in raw_orders]
+        settlements = [normalise_settlement(r) for r in raw_settlements]
+        bank_txns = [normalise_bank_txn(r) for r in raw_bank]
+        
+        match_results, _ = run_matching(orders, settlements, bank_txns)
+        
+        duplicate_settlement_ids = detect_duplicate_settlements(settlements)
+        duplicate_ledger_ids = detect_duplicate_orders(orders)
+        ambiguous_order_ids = detect_ambiguous_bank_matches(match_results)
+
+        classified = classify_all(
+            match_results,
+            duplicate_settlement_order_ids=duplicate_settlement_ids,
+            duplicate_ledger_order_ids=duplicate_ledger_ids,
+            ambiguous_order_ids=ambiguous_order_ids,
+        )
+        
+        exceptions = build_exception_list(classified)
+        
+        cached_count = 0
+        fallback_count = 0
+        for exc in exceptions:
+            try:
+                resp = explain_exception(exc)
+                if resp.llm_status in ("ok", "cached"):
+                    cached_count += 1
+                else:
+                    fallback_count += 1
+            except Exception as e:
+                logger.error(f"Error explaining exception {exc.order_id} during warmup: {e}")
+                fallback_count += 1
+        
+        logger.info(f"LLM cache warmup complete: {cached_count} successfully cached, {fallback_count} fell back.")
+    except Exception as e:
+        logger.error(f"Failed to pre-warm LLM cache: {e}. Server will continue starting.")
+
     yield
 
 

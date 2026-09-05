@@ -7,10 +7,10 @@
     --background: #f8fafc;
     --surface: #ffffff;
     --border: #e2e8f0;
-    --text: #0f172a;
+    --text: #1e293b;
     --text-muted: #64748b;
-    --primary: #0f172a;
-    --primary-hover: #334155;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
     
     /* Semantic Status Colors */
     --status-match: #10b981;
@@ -28,7 +28,7 @@
 }
 
 body {
-  @apply bg-background text-text antialiased;
+  @apply bg-background text-text antialiased font-sans;
 }
 
 /* Custom scrollbar for tables/panels */

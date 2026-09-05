@@ -253,6 +253,8 @@ review queue. This is the sole input to the LLM explain layer — no raw CSV joi
    with a structured plain-text fallback containing the raw diff; never blocks the
    reconciliation result
 
+**Measured real-world constraint:** The Gemini free tier allows 5 requests/minute for `gemini-2.5-flash`. The demo relies on cache pre-warming at server startup specifically to work within this limit.
+
 **Hallucination guard:**
 Every explanation is compared against the diff using numeric extraction (regex).
 Numbers appearing in the response that are not present in the input diff are flagged
@@ -334,10 +336,12 @@ with status badges, exception detail panel with Gemini explanation, Q&A chat int
 - `AuditTrail.tsx`: Paginated and filterable table viewing `/api/audit-log`.
 
 **Design Principles:**
-- Clean, minimal, internal finance tool aesthetic.
-- CSS variables for semantic status mapping (`status-match`, `status-review`, `status-unresolved`).
+- Polished, modern Indian fintech dashboard aesthetic (data-dense but not cluttered).
+- Consistent design system using CSS variables (confident indigo primary color, refined neutral scale).
+- Semantic status colors (emerald, amber, rose) reserved strictly for status indicators.
+- Scannable exceptions queue with hierarchical structured diffs and distinct AI explanation cards.
 
-**Status:** `[DONE]` — Chunk 7.
+**Status:** `[DONE]` — Chunk 7 (with visual design pass applied).
 
 ---
 

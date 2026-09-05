@@ -90,7 +90,7 @@ function App() {
         <nav className="flex-1 px-4 space-y-2 mt-4">
           <button 
             onClick={() => setActiveTab('dashboard')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'dashboard' ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 hover:text-white'}`}
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all ${activeTab === 'dashboard' ? 'bg-primary text-white shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}
           >
             <LayoutDashboard className="w-5 h-5 mr-3" />
             Dashboard
@@ -98,7 +98,7 @@ function App() {
           
           <button 
             onClick={() => setActiveTab('chat')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'chat' ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 hover:text-white'}`}
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all ${activeTab === 'chat' ? 'bg-primary text-white shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}
           >
             <MessageSquare className="w-5 h-5 mr-3" />
             Q&A Assistant
@@ -106,7 +106,7 @@ function App() {
 
           <button 
             onClick={() => setActiveTab('audit')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'audit' ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 hover:text-white'}`}
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all ${activeTab === 'audit' ? 'bg-primary text-white shadow-sm' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}
           >
             <AlertCircle className="w-5 h-5 mr-3" />
             Audit Trail

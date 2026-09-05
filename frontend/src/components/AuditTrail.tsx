@@ -67,42 +67,42 @@ export const AuditTrail: React.FC = () => {
           <div className="flex items-center justify-center h-full text-text-muted">No audit logs found.</div>
         ) : (
           <table className="w-full text-left text-sm text-text">
-            <thead className="bg-white border-b border-border sticky top-0 shadow-sm z-10">
+            <thead className="bg-white border-b border-border sticky top-0 shadow-sm z-10 text-xs uppercase tracking-wider font-semibold">
               <tr>
-                <th className="px-4 py-3 font-medium text-text-muted">Timestamp (UTC)</th>
-                <th className="px-4 py-3 font-medium text-text-muted">Event Type</th>
-                <th className="px-4 py-3 font-medium text-text-muted">Target</th>
-                <th className="px-4 py-3 font-medium text-text-muted">Status</th>
-                <th className="px-4 py-3 font-medium text-text-muted">Latency</th>
-                <th className="px-4 py-3 font-medium text-text-muted">Hallucination</th>
+                <th className="px-6 py-4 text-text-muted">Timestamp (UTC)</th>
+                <th className="px-6 py-4 text-text-muted">Event Type</th>
+                <th className="px-6 py-4 text-text-muted">Target</th>
+                <th className="px-6 py-4 text-text-muted">Status</th>
+                <th className="px-6 py-4 text-text-muted">Latency</th>
+                <th className="px-6 py-4 text-text-muted">Hallucination</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-border/50">
               {logs.map((log, idx) => (
-                <tr key={idx} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 whitespace-nowrap text-xs text-text-muted">
+                <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-xs text-text-muted">
                     {new Date(log.timestamp_utc).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-slate-100 rounded text-xs font-medium">
-                      {log.event_type}
+                  <td className="px-6 py-4">
+                    <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-100/50 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                      {log.event_type.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-medium text-xs">
+                  <td className="px-6 py-4 font-medium text-xs">
                     {log.order_id || 'System'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-4">
                     <div className="flex items-center space-x-1.5">
                       {getStatusIcon(log.llm_status)}
-                      <span className="text-xs">{log.llm_status}</span>
+                      <span className="text-xs font-medium text-text-muted capitalize">{log.llm_status}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-xs text-text-muted">
+                  <td className="px-6 py-4 text-xs font-mono text-text-muted">
                     {log.latency_ms > 0 ? `${log.latency_ms}ms` : '-'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-6 py-4">
                     {log.potential_hallucination ? (
-                      <span className="flex items-center text-status-unresolved text-xs font-medium">
+                      <span className="flex items-center text-status-unresolved text-xs font-medium bg-status-unresolved-bg px-2 py-0.5 rounded-full w-fit">
                         <ShieldAlert className="w-3 h-3 mr-1" /> Flagged
                       </span>
                     ) : (
